@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 					else{
 					//	printf("here?%f\n",ball_distance[near_ball]);
 
-						if(ball_distance[near_ball]>0.3)
+						if(ball_distance[near_ball]>0.45)
 						{
 							data[0]=40;data[1]=40;data[2]=-40;data[3]=-40;
 							printf("go straight\n");
@@ -212,13 +212,13 @@ int main(int argc, char **argv)
 
 						}
 						else{
-							 for (int i=0;i<200;i++)
+							 for (int i=0;i<150;i++)
 							 {
-								 data[0]=10;data[1]=10;data[2]=-10;data[3]=-10;
+								 data[0]=40;data[1]=40;data[2]=-40;data[3]=-40;
 								 write(c_socket, data, sizeof(data));
 								 ros::Duration(0.025).sleep();
 							 }
-							 for (int i=0;i<50;i++)
+							 for (int i=0;i<100;i++)
 							 {
 								 data[0]=10;data[1]=10;data[2]=-10;data[3]=-10;data[4]=90*(ball_get+1);
 								 write(c_socket, data, sizeof(data));
@@ -281,13 +281,14 @@ int main(int argc, char **argv)
 		// 		if(ball_Y[near_ball]>0){data[5]=1;}  else{data[5]=-1;}
 		// 	}
 		// }
+		printf("distance:%f\n",ball_distance[near_ball]);
 	}
 		//자율 주행 알고리즘에 입력된 제어데이터(xbox 컨트롤러 데이터)를 myRIO에 송신(tcp/ip 통신)
-	//	printf("distance:%f\n",ball_distance[near_ball]);
-		printf("data0:%f\n",data[0]);
-		printf("data1:%f\n",data[1]);
-		printf("data2:%f\n",data[2]);
-		printf("data3:%f\n",data[3]);
+
+	//	printf("data0:%f\n",data[0]);
+	//	printf("data1:%f\n",data[1]);
+	//	printf("data2:%f\n",data[2]);
+	//	printf("data3:%f\n",data[3]);
 	//printf("??\n");
 
 			write(c_socket, data, sizeof(data));
