@@ -172,6 +172,16 @@ int main(int argc, char **argv)
 				if (wall_dist>=total_dist){
 					wall_dist = total_dist;
 					angle = lidar_degree[i];
+					if ( i < 90.5){
+						//turn right
+						ref1 = lidar_distance[i+89];
+						ref2 = lidar_distance[i-89];
+					}
+					else if( i > 90.5){
+						//turn left
+						ref1 = lidar_distance[i+269];
+						ref2 = lidar_distance[i+89];
+					}
 				}
 
 			    }
@@ -179,17 +189,30 @@ int main(int argc, char **argv)
 					printf(" theta: %f\n",angle);
 					//printf(" ind: %d\n",i);
 
-				if (angle < -91.5 && angle > -88.5){
-					data[0] = 20;
-					data[1] = 20;
-					data[2] = 20;
-					data[3] = 20;
+				if (angle < -94.5){
+					if(ref1 <= ref2){
+						//turn left
+					}
+					else{
+						//turn right
+					}
+				}
+				else if(angle > -85.5){
+					if(ref1 <= ref2){
+						//turn left
+					}
+					else{
+						//turn right
+					}
 				}
 				else{
-					data[0] = 20;
-					data[1] = 20;
-					data[2] = -20;
-					data[3] = -20;
+					//go straight
+						data[0] = 20;
+						data[1] = 20;
+						data[2] = -20;
+						data[3] = -20;
+					}
+
 				}
 // 		shortest_obs = 6;
 // 		near_angle = scan_angle[0];
