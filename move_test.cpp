@@ -38,10 +38,10 @@ float lidar_degree[400];
 float lidar_distance[400];
 float lidar_obs;
 
-int ball_number;
-float ball_X[20], ball_X_r[20];
-float ball_Y[20], ball_Y_r[20];
-float ball_distance[20], red_distance[20];
+int ball_number,green_number;
+float ball_X[20], ball_X_r[20], ball_X_g[20];
+float ball_Y[20], ball_Y_r[20], ball_Y_g[20];
+float ball_distance[20], red_distance[20],ball_distance_g[20];
 int near_ball, near_red;
 int ch;
 int c_socket, s_socket;
@@ -79,7 +79,9 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 
     int count_b = position->b_x.size();
 		int count_r=position->r_x.size();
+		int count_g=position->g_x.size();
     ball_number=count_b;
+		green_number=count_g;
     for(int i = 0; i < count_b; i++)
     {
         ball_X[i] = position->b_x[i];
@@ -98,12 +100,21 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 		ball_distance[i] = ball_X_r[i]*ball_X_r[i]+ball_Y_r[i]*ball_Y_r[i];
 
     }
+		for(int i = 0; i < count_g; i++)
+    {
+        ball_X_g[i] = position->g_x[i];
+        ball_Y_g[i] = position->g_y[i];
+        // std::cout << "degree : "<< ball_degree[i];
+        // std::cout << "   distance : "<< ball_distance[i]<<std::endl;
+		ball_distance_g[i] = ball_X_g[i]*ball_X_g[i]+ball_Y_g[i]*ball_Y_g[i];
+
+    }
 }
 void initial_move()
 {
-	for(int i=0;i<2000;i++)
+	for(int i=0;i<400;i++)
 	{
-		data[0]=20;data[1]=20;data[2]=-20;data[3]=-20;
+		data[0]=-30;data[1]=30;data[2]=30;data[3]=-30;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 	}
@@ -187,7 +198,7 @@ int main(int argc, char **argv)
 	dataInit();
 
     while(ros::ok){
-			while (ball_get<3){
+		/*	while (ball_get<3){
 
 
 		// for(int i = 0; i < lidar_size-1; i++)
@@ -264,8 +275,17 @@ int main(int argc, char **argv)
 			write(c_socket, data, sizeof(data));
 	    ros::Duration(0.025).sleep();
 	    ros::spinOnce();
-}
-			data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;
+}*/
+		if(green_number==0){
+			find_ball();
+			ros::Duration(0.025).sleep();
+			ros::spinOnce();
+
+		}
+		else{
+
+
+			data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;}
 			write(c_socket, data, sizeof(data));
  	    ros::Duration(0.025).sleep();
  	    ros::spinOnce();
