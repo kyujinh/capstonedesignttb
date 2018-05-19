@@ -19,12 +19,14 @@ using namespace std;
 Mat buffer(640,360,CV_8UC1);
 ros::Publisher pub;
 ros::Publisher pub_markers;
+ros::Publisher pub_markers_r;
+ros::Publisher pub_markers_g;
 
 int low_h_b=90, low_s_b=200, low_v_b=100;//
 int high_h_b=110, high_s_b=255, high_v_b=255;//
-int low_h2_r=5, high_h2_r=10;//
-int low_h_r=5, low_s_r=130, low_v_r=205;//
-int high_h_r=10, high_s_r=255, high_v_r=255;//
+int low_h2_r=166, high_h2_r=180;//
+int low_h_r=0, low_s_r=81, low_v_r=129;//
+int high_h_r=1, high_s_r=255, high_v_r=255;//
 int lowThreshold_r = 100;
 int ratio_r = 3;
 int kernel_size_r = 3;
@@ -76,9 +78,9 @@ void ball_detect()
 
     //end of marker definitions
     // Here, we start the video capturing function, with the argument being the camera being used. 0 indicates the default camera, and 1 indicates the additional camera. Also, we make the 6 windows which we see at the results.
-    //VideoCapture cap(0);minEnclosingCircle
+  //  VideoCapture cap(1);
     while((char)waitKey(1)!='q'){
-        //cap>>frame;
+    //    cap>>frame;
 
 
         if(buffer.size().width==320){
@@ -140,6 +142,9 @@ void ball_detect()
         vector<vector<Point> > contours_g_poly( contours_g.size() );
         vector<Point2f>center_g( contours_g.size() );
         vector<float>radius_g( contours_g.size());
+        vector<int>check_r( contours_r.size() );
+        vector<int>check_b( contours_b.size() );
+
         //cv::imshow("view", frame);  //show the image with a window
       //cv::waitKey(1rs_b.size() );
 
@@ -167,13 +172,47 @@ void ball_detect()
       	ball_list.pose.orientation.y=0;
       	ball_list.pose.orientation.z=0;
       	ball_list.pose.orientation.w=1.0;
-
       	ball_list.id = 0; //set the marker id. if you use another markers, then make them use their own unique ids
       	ball_list.type = visualization_msgs::Marker::SPHERE_LIST;  //set the type of marker
-
       	ball_list.scale.x=0.10; //set the radius of marker   1.0 means 1.0m, 0.001 means 1mm
       	ball_list.scale.y=0.10;
       	ball_list.scale.z=0.10;
+
+      	visualization_msgs::Marker ball_list_r;  //declare marker
+      	ball_list_r.header.frame_id = "/camera_link";  //set the frame
+      	ball_list_r.header.stamp = ros::Time::now();   //set the header. without it, the publisher may not publish.
+      	ball_list_r.ns = "red_balls";   //name of markers
+      	ball_list_r.action = visualization_msgs::Marker::ADD;
+      	ball_list_r.pose.position.x=0; //the transformation between the frame and camera data, just set it (0,0,0,0,0,0) for (x,y,z,roll,pitch,yaw)
+      	ball_list_r.pose.position.y=0;
+      	ball_list_r.pose.position.z=0;
+      	ball_list_r.pose.orientation.x=0;
+      	ball_list_r.pose.orientation.y=0;
+      	ball_list_r.pose.orientation.z=0;
+      	ball_list_r.pose.orientation.w=1.0;
+      	ball_list_r.id = 1; //set the marker id. if you use another markers, then make them use their own unique ids
+      	ball_list_r.type = visualization_msgs::Marker::SPHERE_LIST;  //set the type of marker
+      	ball_list_r.scale.x=0.10; //set the radius of marker   1.0 means 1.0m, 0.001 means 1mm
+      	ball_list_r.scale.y=0.10;
+      	ball_list_r.scale.z=0.10;
+
+      	visualization_msgs::Marker ball_list_g;  //declare marker
+      	ball_list_g.header.frame_id = "/camera_link";  //set the frame
+      	ball_list_g.header.stamp = ros::Time::now();   //set the header. without it, the publisher may not publish.
+      	ball_list_g.ns = "green_balls";   //name of markers
+      	ball_list_g.action = visualization_msgs::Marker::ADD;
+      	ball_list_g.pose.position.x=0; //the transformation between the frame and camera data, just set it (0,0,0,0,0,0) for (x,y,z,roll,pitch,yaw)
+      	ball_list_g.pose.position.y=0;
+      	ball_list_g.pose.position.z=0;
+      	ball_list_g.pose.orientation.x=0;
+      	ball_list_g.pose.orientation.y=0;
+      	ball_list_g.pose.orientation.z=0;
+      	ball_list_g.pose.orientation.w=1.0;
+      	ball_list_g.id = 2; //set the marker id. if you use another markers, then make them use their own unique ids
+      	ball_list_g.type = visualization_msgs::Marker::SPHERE_LIST;  //set the type of marker
+      	ball_list_g.scale.x=0.10; //set the radius of marker   1.0 means 1.0m, 0.001 means 1mm
+      	ball_list_g.scale.y=0.10;
+      	ball_list_g.scale.z=0.10;
         int kr=0;
         int kb=0;
         int kg=0;
@@ -194,16 +233,45 @@ void ball_detect()
             kg++;
           }
         }
+
+
         msg.size =kb+kg+kr; //adjust the size 87:of message. (*the size of message is varying depending on how many circles are detected)
+
+     int alphar=0;
+     float x, y, r, l;
+
+     for( int i = 0; i< radius_r.size(); i++ ){ //draw the circles
+         for(int j = 0; j <radius_r.size(); j++ ){
+             x = center_r[i].x - center_r[j].x;
+             y = center_r[i].y - center_r[j].y;
+             r = sqrt(pow(x,2.0) + pow(y,2.0));
+             l = radius_r[i] +radius_r[j];
+             if(r < l && radius_r[i] < radius_r[j] ){ // check i-th ball is in the j-th ball
+                 check_r[i] = 1; //
+                 break; // we aready know this circle is in the other circle, so we don't need to check anymore
+             }
+         }
+     }
+
+    kr=0;
+    std::cout<<"# of contours: "<<contours_r.size()<<std::endl;
+    for(int i=0;i<contours_r.size();i++){
+	if(check_r[i]==0&&radius_r[i] > iMin_tracking_ball_size){
+		std::cout<<i<<": "<<check_r[i]<<" //";
+		kr++;
+	}
+    }
+	std::cout<<std::endl;
+	std::cout<<"the number of red balls: "<<kr<<std::endl;
 
         msg.img_r_x.resize(kr);  //adjust the size of array
         msg.img_r_y.resize(kr);  //adjust the size of array
         msg.img_r_z.resize(kr);//gblue’ is not a member of ‘core_msgs’
      //core_msgs::msgblue msgb;
 
-     int alphar=0;
+//	std::cout<<"temp block===="<<std::endl;
       for( size_t i = 0; i< contours_r.size(); i++ ){
-          if (radius_r[i] > iMin_tracking_ball_size){
+          if (radius_r[i] > iMin_tracking_ball_size && check_r[i] !=1){
 
             Scalar color = Scalar( 0, 0, 255);
                 drawContours( hsv_frame_red_canny, contours_r_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
@@ -212,6 +280,9 @@ void ball_detect()
                 float isx = ball_position_r[0];
                 float isy = ball_position_r[1];
                 float isz = ball_position_r[2];
+
+		std::cout<<ball_position_r[0]<<", "<<ball_position_r[1]<<", "<<ball_position_r[2]<<std::endl;
+
 
                 /*string sx = floatToString(isx);
                 string sy = floatToString(isy);
@@ -222,28 +293,59 @@ void ball_detect()
                 msg.img_r_x[alphar]=isx;  //input the x povtColor(calibrated_frame, hsv_frame, cv::COLOR_BGR2HSV);// Color is converted from BGR color space to HSV color space.
                 msg.img_r_y[alphar]=isy;
                 msg.img_r_z[alphar]=isz;
+
+
                 geometry_msgs::Point p;
                 p.x=isx;
                 p.y=isy;
                 p.z=isz;
-                ball_list.points.push_back(p);
+                ball_list_r.points.push_back(p);
                 std_msgs::ColorRGBA c;
                 c.r = 1.0;  //set the color of the balls. You can set it respectively.
                 c.g = 0.0;
                 c.b = 0.0;
                 c.a = 1.0;
-                ball_list.colors.push_back(c);
+                ball_list_r.colors.push_back(c);
                 alphar++;
+                if (isx<0.01&&isx>-0.01){
+                //  printf("isx %f\n",isx);
+                  printf("isy %f %f %f\n",isx, isy, isz);
+                //  printf("isz %f\n",isz);
+                }
               }
             }
 
-            msg.img_b_x.resize(kb);  //adjust the size of array
-             msg.img_b_y.resize(kb);  //adjust the size of array
-             msg.img_b_z.resize(kb);
-             int alphab=0;
 
+       int alphab=0;
+       for( int i = 0; i< radius_b.size(); i++ ){ //draw the circles
+           for(int j = 0; j < radius_b.size(); j++ ){
+               x = center_b[i].x - center_b[j].x;
+               y = center_b[i].y - center_b[j].y;
+               r = sqrt(pow(x,2.0) + pow(y,2.0));
+               l = radius_b[i] +radius_b[j];
+               if(r < l && radius_b[i] < radius_b[j] ){ // check i-th ball is in the j-th ball
+                   check_b[i] = 1; //
+                   break; // we aready know this circle is in the other circle, so we don't need to check anymore
+               }
+           }
+       }
+       kb=0;
+       std::cout<<"# of contours: "<<contours_b.size()<<std::endl;
+       for(int i=0;i<contours_b.size();i++){
+   	if(check_b[i]==0&&radius_b[i] > iMin_tracking_ball_size){
+   		std::cout<<i<<": "<<check_b[i]<<" //";
+   		kb++;
+   	}
+       }
+       std::cout<<std::endl;
+     	std::cout<<"the number of blue balls: "<<kb<<std::endl;
+
+       msg.img_b_x.resize(kb);  //adjust the size of array
+        msg.img_b_y.resize(kb);  //adjust the size of array
+        msg.img_b_z.resize(kb);
+        printf("size %lu\n",msg.img_b_x.size());
       for( size_t i = 0; i< contours_b.size(); i++ ){
-        if(radius_b[i] > iMin_tracking_ball_size){
+        if(radius_b[i] > iMin_tracking_ball_size && check_b[i]==0){
           Scalar color = Scalar( 255, 0, 0);
           drawContours( hsv_frame_blue_canny, contours_b_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
           vector<float> ball_position_b;// Color is converted from BGR color space to HSV color space.
@@ -254,6 +356,9 @@ void ball_detect()
           msg.img_b_x[alphab]=isx;  //input the x povtColor(calibrated_frame, hsv_frame, cv::COLOR_BGR2HSV);// Color is converted from BGR color space to HSV color space.
           msg.img_b_y[alphab]=isy;
           msg.img_b_z[alphab]=isz;
+          //printf("isx %f\n",isx);
+          //printf("isy %f\n",isy);
+          printf("alphab %d\n",alphab);
           geometry_msgs::Point p;
           p.x=isx;
           p.y=isy;
@@ -285,7 +390,7 @@ void ball_detect()
         for( size_t i = 0; i< contours_g.size(); i++ ){
           if(radius_g[i] > iMin_tracking_ball_size){
             Scalar color = Scalar( 0, 255, 0);
-            drawContours( hsv_frame_green_canny, contours_g_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
+            //drawContours( hsv_frame_green_canny, contours_g_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
             vector<float> ball_position_g;// Color is converted from BGR color space to HSV color space.
             ball_position_g = pixel2point(center_g[i], radius_g[i]);
             float isx = ball_position_g[0];
@@ -298,13 +403,13 @@ void ball_detect()
             p.x=isx;
             p.y=isy;
             p.z=isz;
-            ball_list.points.push_back(p);
+            ball_list_g.points.push_back(p);
             std_msgs::ColorRGBA c;
             c.r = 0.0;  //set the color of the balls. You can set it respectively.
             c.g = 1.0;
             c.b = 0.0;
             c.a = 1.0;
-            ball_list.colors.push_back(c);
+            ball_list_g.colors.push_back(c);
             alphag++;
 
 
@@ -314,7 +419,8 @@ void ball_detect()
             }
 pub.publish(msg);
 pub_markers.publish(ball_list);  //publish a marker message
-
+pub_markers_g.publish(ball_list_g);
+pub_markers_r.publish(ball_list_r);
     break;
         }
 
@@ -385,9 +491,13 @@ int main(int argc, char **argv)
    ros::NodeHandle nh; //create node handler
    image_transport::ImageTransport it(nh); //create image transport and connect it to node hnalder
    image_transport::Subscriber sub = it.subscribe("camera/image", 1, imageCallback); //create subscriber
-   pub = nh.advertise<core_msgs::ball_position>("/position",100);
+   pub = nh.advertise<core_msgs::ball_position>("/position",1);
 //   pubblue = nh.advertise<core_msgs::msgblue>("/position",100); //setting publisher
    pub_markers = nh.advertise<visualization_msgs::Marker>("/balls",1);
+   pub_markers_r = nh.advertise<visualization_msgs::Marker>("/red_balls",1);
+   pub_markers_g = nh.advertise<visualization_msgs::Marker>("/green_balls",1);
+
+
    ros::spin(); //spin.
    return 0;
 }
