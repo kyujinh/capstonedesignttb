@@ -40,10 +40,12 @@ float lidar_obs;
 
 int ball_number;
 int red_number;
-float ball_X[20], ball_X_r[20];
-float ball_Y[20], ball_Y_r[20];
+int green_number;
+float ball_X[20], ball_X_r[20], ball_X_g[20];
+float ball_Y[20], ball_Y_r[20], ball_Y_g[20];
 float ball_distance[20];
 float red_distance[20];
+float green_distance[20];
 int near_ball, near_red;
 int ch;
 int c_socket, s_socket;
@@ -81,8 +83,10 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 {
     int count_b = position->b_x.size();
 		int count_r=position->r_x.size();
-    ball_number=count_b;
+		int count_g=position->g_x.size();
+		ball_number=count_b;
 		red_number=count_r;
+		green_number=count_g;
     for(int i = 0; i < count_b; i++)
     {
         ball_X[i] = position->b_x[i];
@@ -101,6 +105,11 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 		red_distance[i] = ball_X_r[i]*ball_X_r[i]+ball_Y_r[i]*ball_Y_r[i];
 
     }
+		for(int i=0;i<count_g;i++)
+		{
+			ball_X_g[i]=position->g_x[i];
+			ball_Y_g[i]=position->g_y[i];
+		}
 	//	printf("ball_number %d\n",ball_number);
 }
 /*void find_ball()
@@ -203,11 +212,11 @@ int main(int argc, char **argv)
          return -1;
      }*/
 		 	printf("connected\n");
-	/*	if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
+		if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
 			printf("Failed to connect\n");
 			close(c_socket);
 			//return -1;
-		}*/
+		}
     while(ros::ok){
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		// // 각노드에서 받아오는 센서 테이터가 잘 받아 왔는지 확인하는 코드 (ctrl + /)을 눌러 주석을 추가/제거할수 있다.///
@@ -252,7 +261,7 @@ int main(int argc, char **argv)
 
 				printf("ball_X_r %f",ball_X_r[near_red]);
 			 	if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<0.4){
-					slide_dist = int(1000*(0.1-abs(ball_X_r[near_red])));
+					slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
 			 		avoid_red(slide_dist);
 					state=1;
 			 		printf("avoid\n");
@@ -306,6 +315,7 @@ int main(int argc, char **argv)
 									 printf("let's go\n");
 									 printf("collector motor %f\n",data[4]);
 								 }
+								 ros::Duration(0.025).sleep();
 								 for (int i=0;i<100;i++)
 								 {
 									 data[0]=-20;data[1]=20;data[2]=20;data[3]=-20;data[4]=45+90*(ball_get+1);
@@ -335,6 +345,54 @@ int main(int argc, char **argv)
 	ros::spinOnce();
 }
 data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;
+/*if(green_number!=2){
+	follow_greenball();
+}
+else{
+	home_x=(ball_X_g[0]+ball_X_g[1])/2;
+	if(abs(home_x)>0.02){
+		if(home_x>0){
+			data[0]=30;
+			data[1]=30;
+			data[2]=-30;
+			data[3]=-30;
+		}
+		else{
+			data[0]=-30;
+			data[1]=-30;
+			data[2]=30;
+			data[3]=30;
+		}}
+	else{
+			if(abs(ball_Y_g[0])>0.2){
+				data[0]=-40;
+				data[1]=40;
+				data[2]=40;
+				data[3]=-40;
+			}
+			else{
+				for(int i=0;i<100;i++){
+					data[0]=-40;
+					data[1]=40;
+					data[2]=40;
+					data[3]=-40;
+					write(c_socket, data, sizeof(data));
+					ros::Duration(0.025).sleep();
+				}
+				for(int i=0;i<3;i++){
+					for(int j=0;j<50;j++){
+						data[0]=0;
+						data[1]=0;
+						data[2]=0;
+						data[3]=0;
+						data[4]=315-90*(i+1);
+					}
+				}
+				}
+			}
+		}*/
+
+
 write(c_socket, data, sizeof(data));
 ros::Duration(0.025).sleep();
 ros::spinOnce();
@@ -343,5 +401,6 @@ ros::spinOnce();
 
 
 }
+
 return 0;
 }
