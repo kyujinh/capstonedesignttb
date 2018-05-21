@@ -34,8 +34,8 @@ int lowThreshold_b = 100;
 int ratio_b = 3;
 int kernel_size_b = 3;
 
-int low_h_g=45, low_s_g=100, low_v_g=100;//
-int high_h_g=70, high_s_g=255, high_v_g=255;//
+int low_h_g=44, low_s_g=100, low_v_g=61;//
+int high_h_g=77, high_s_g=220, high_v_g=180;//
 int lowThreshold_g = 100;
 int ratio_g = 3;
 int kernel_size_g = 3;
@@ -144,6 +144,7 @@ void ball_detect()
         vector<float>radius_g( contours_g.size());
         vector<int>check_r( contours_r.size() );
         vector<int>check_b( contours_b.size() );
+        vector<int>check_g( contours_g.size() );
 
         //cv::imshow("view", frame);  //show the image with a window
       //cv::waitKey(1rs_b.size() );
@@ -381,14 +382,33 @@ void ball_detect()
 
       //  msg.size =contours_b.size(); //adjust the size 87:of message. (*the size of message is varying depending on how many circles are detected)
 
+      for( int i = 0; i< radius_g.size(); i++ ){ //draw the circles
+          for(int j = 0; j <radius_g.size(); j++ ){
+              x = center_g[i].x - center_g[j].x;
+              y = center_g[i].y - center_g[j].y;
+              r = sqrt(pow(x,2.0) + pow(y,2.0));
+              l = radius_g[i] +radius_g[j];
+              if(r < l && radius_g[i] < radius_g[j] ){ // check i-th ball is in the j-th ball
+                  check_g[i] = 1; //
+                  break; // we aready know this circle is in the other circle, so we don't need to check anymore
+              }
+          }
+      }
 
+
+      for(int i=0;i<contours_g.size();i++){
+   if(check_g[i]==0&&radius_g[i] > 5){
+     std::cout<<i<<": "<<check_g[i]<<" //";
+     kg++;
+   }
+      }
           msg.img_g_x.resize(kg);  //adjust the size of array
           msg.img_g_y.resize(kg);  //adjust the size of array
           msg.img_g_z.resize(kg);
           int alphag=0;
 
         for( size_t i = 0; i< contours_g.size(); i++ ){
-          if(radius_g[i] > iMin_tracking_ball_size){
+          if(radius_g[i] > 5&& check_g[i]==0){
             Scalar color = Scalar( 0, 255, 0);
             //drawContours( hsv_frame_green_canny, contours_g_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
             vector<float> ball_position_g;// Color is converted from BGR color space to HSV color space.
