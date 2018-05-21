@@ -17,6 +17,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include "core_msgs/ball_position.h"
+#include "core_msgs/tf_result.h"
 
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
@@ -27,18 +28,16 @@ using namespace std;
 
 #define RAD2DEG(x) ((x)*180./M_PI)
 
-#define PORT 4000
-#define IPADDR "10.42.0.133" // myRIO ipadress
+#define PORT 7785
+#define IPADDR "172.16.0.1" // myRIO ipadress
 
 
 int lidar_size;
 float lidar_degree[400], scan_angle[181], angle, total_dist,ref1,ref2;
 float lidar_distance[400];
 float lidar_obs;
-
+	 int green_number;
 int ball_number;
-float ball_X[20];
-float ball_Y[20];
 float ball_distance[20];
 int near_ball;
 
@@ -46,10 +45,11 @@ int c_socket, s_socket;
 struct sockaddr_in c_addr;
 int len;
 int n;
-float data[24];
+double data[6];
 float shortest_obs;
 float near_angle;
-
+float ball_X[20], ball_X_r[20], ball_X_g[20];
+float ball_Y[20], ball_Y_r[20], ball_Y_g[20];
 #define RAD2DEG(x) ((x)*180./M_PI)
 
 void dataInit()
@@ -77,6 +77,8 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 			// 		k+=1;
 				 //printf("ind: %d\n",k);
 			 //printf("ang: %f\n",scan_angle[k]);
+	//		 printf("lidar_distance %f\n",lidar_distance[i]);
+		//	 printf("i %d\n",i);
 			}
 
 
@@ -94,21 +96,41 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 
 
 }
-void camera_Callback(const core_msgs::ball_position::ConstPtr& position)
+void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 {
-
-    int count = position->size;
-    ball_number=count;
-    for(int i = 0; i < count; i++)
+    int count_b = position->b_x.size();
+		int count_r=position->r_x.size();
+		int count_g=position->g_x.size();
+		//ball_number=count_b;
+		//red_number=count_r;
+		green_number=count_g;
+    for(int i = 0; i < count_b; i++)
     {
-        ball_X[i] = position->img_b_x[i];
-        ball_Y[i] = position->img_b_y[i];
+        ball_X[i] = position->b_x[i];
+        ball_Y[i] = position->b_y[i];
         // std::cout << "degree : "<< ball_degree[i];
         // std::cout << "   distance : "<< ball_distance[i]<<std::endl;
-		ball_distance[i] = ball_X[i]*ball_X[i]+ball_Y[i]*ball_X[i];
-    }
+		ball_distance[i] = ball_X[i]*ball_X[i]+ball_Y[i]*ball_Y[i];
 
+    }
+		printf("count_g %d\n",count_g);
+	/*	for(int i = 0; i < count_r; i++)
+    {
+        ball_X_r[i] = position->r_x[i];
+        ball_Y_r[i] = position->r_y[i];
+        // std::cout << "degree : "<< ball_degree[i];
+        // std::cout << "   distance : "<< ball_distance[i]<<std::endl;
+		red_distance[i] = ball_X_r[i]*ball_X_r[i]+ball_Y_r[i]*ball_Y_r[i];
+
+	}*/
+		for(int i=0;i<count_g;i++)
+		{
+			ball_X_g[i]=position->g_x[i];
+			ball_Y_g[i]=position->g_y[i];
+		}
+	//	printf("ball_number %d\n",ball_number);
 }
+
 void find_ball()
 {
 	//data[20]=1;
@@ -121,7 +143,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 1000, lidar_Callback);
-    ros::Subscriber sub1 = n.subscribe<core_msgs::ball_position>("/position", 1000, camera_Callback);
+		ros::Subscriber sub1 = n.subscribe<core_msgs::tf_result>("/ball_platform", 1, camera_Callback);
     dataInit();
 
     c_socket = socket(PF_INET, SOCK_STREAM, 0);
@@ -129,14 +151,15 @@ int main(int argc, char **argv)
     c_addr.sin_family = AF_INET;
     c_addr.sin_port = htons(PORT);
 
-    // if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
-    //     printf("Failed to connect\n");
-    //     close(c_socket);
-    //     return -1;
-    // }
+   if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
+         printf("Failed to connect\n");
+         close(c_socket);
+         return -1;
+     }
 
 		int k = 0;
-		while(1){
+	while(ros::ok){
+		while(green_number<2){
     // while(ros::ok){
 		/////////////////////////////////////////////////////////////////////////////////////////////////
 		// // 각노드에서 받아오는 센서 테이터가 잘 받아 왔는지 확인하는 코드 (ctrl + /)을 눌러 주석을 추가/제거할수 있다.///
@@ -160,10 +183,11 @@ int main(int argc, char **argv)
 		////////////////////////////////////////////////////////////////
 		// // 자율 주행을 예제 코드 (ctrl + /)을 눌러 주석을 추가/제거할수 있다.///
 		////////////////////////////////////////////////////////////////
-		dataInit();
+		//dataInit();
 		float wall_dist = 6.0;
+		int k=0;
 		for(int i = 0; i < 179; i++)
-			    {
+			{
 				// if(lidar_distance[i]<lidar_distance[i+1]){lidar_obs=i;}
 				// else if(lidar_distance[i]==lidar_distance[i+1]){lidar_obs=i;}
 				// else {lidar_obs=i+1;}
@@ -174,93 +198,131 @@ int main(int argc, char **argv)
 					angle = lidar_degree[i];
 					if ( i > 90.5){
 						//turn right
-						ref1 = lidar_distance[i+89];
-						ref2 = lidar_distance[i-89];
+						ref2 = lidar_distance[i+89];
+						ref1 = lidar_distance[i-89];
+						k=i;
 
 					}
 					else if( i < 90.5){
 						//turn left
-						ref2 = lidar_distance[i+269];
-						ref1 = lidar_distance[i+89];
+						ref1 = lidar_distance[i+269];
+						ref2 = lidar_distance[i+89];
+						k=i;
 					}
 				}
 
 			    }
-				printf("distance: %f\n",wall_dist);
+			//	printf("distance: %f\n",wall_dist);
 			//		printf(" theta: %f\n",angle);
 					//printf(" ind: %d\n",i);
-// printf(" ref1: %f\n", ref1)
-// printf(" ref2: %f\n", ref2);
-		while(ball_green<2){
-			if(ref1-ref2>0.05){
-				if(angle<-1){
+ for(int i=0;i<1;i++){
+ if(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()||lidar_distance[0]==std::numeric_limits<float>::infinity()||lidar_distance[179]==std::numeric_limits<float>::infinity()){
+	 write(c_socket, data, sizeof(data));
+ 		ros::Duration(0.025).sleep();
+
+	 break;
+ }
+ else{
+	 printf(" ref1: %f\n", ref1);
+	 printf(" ref2: %f\n", ref2);
+	 printf("k %d\n",k);
+	 printf("angle %f\n",angle);
+
+
+	//	while(green_number<2){
+			if(ref1<ref2){
+				if(  angle<-15){
 					data[0]=20;data[1]=20;data[2]=20;data[3]=20;
 					printf("turn left\n");
+					printf("angle %f\n",angle);
+
 				}
 				else
 				{
-					data[0]=0;data[1]=0;data[2]=0;data[3]=0;
-					if ((lidar_distance[0]-lidar_distance[179])>0.01){
+					//data[0]=0;data[1]=0;data[2]=0;data[3]=0;
+					/*if ((lidar_distance[0]-lidar_distance[179])>0.1){
 						data[0]=20;
 						data[1]=20;
 						data[2]=-20;
 						data[3]=-20;
-						printf("slide_right");
-
+						printf("slide_right\n");
+						printf("distance %f\n",lidar_distance[0]-lidar_distance[179]);
 				}
-				else if((lidar_distance[0]-lidar_distance[179])<-0.01){
+					else if((lidar_distance[0]-lidar_distance[179])<-0.1){
 					data[0]=-20;
 					data[1]=-20;
 					data[2]=20;
 					data[3]=20;
-					printf("slide_left");
+					printf("slide_left\n");
+					printf("distance %f\n",lidar_distance[0]-lidar_distance[179]);
 				}
-				else{
+					else{*/
 					data[0]=-20;
 					data[1]=20;
 					data[2]=20;
 					data[3]=-20;
-					printf("go_straight");
-				}
+					printf("go_straight\n");
+					//}
 				}
 			}
-			else if(ref2-ref1>0.05){
-				if(angle>-179){
+			else {
+				if(-165<angle){
 					data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
 					printf("turn right\n");
+					printf("angle %f\n",angle);
+
 				}
 				else
 				{
-					data[0]=0;data[1]=0;data[2]=0;data[3]=0;
-					if ((lidar_distance[0]-lidar_distance[179])>0.01){
+				//	data[0]=0;data[1]=0;data[2]=0;data[3]=0;
+				/*	if ((lidar_distance[0]-lidar_distance[179])>0.01){
 						data[0]=20;
 						data[1]=20;
 						data[2]=-20;
 						data[3]=-20;
-						printf("slide_right");
-
+						printf("slide_right\n");
+						printf("distance %f\n",lidar_distance[0]-lidar_distance[179]);
 				}
 				else if((lidar_distance[0]-lidar_distance[179])<-0.01){
 					data[0]=-20;
 					data[1]=-20;
 					data[2]=20;
 					data[3]=20;
-					printf("slide_left");
+					printf("slide_left\n");
+					printf("distance %f\n",lidar_distance[0]-lidar_distance[179]);
 				}
-				else{
-					data[0]=-20;
-					data[1]=20;
-					data[2]=20;
-					data[3]=-20;
-					printf("go_straight");
-				}
-				}
-			}
-			write(c_socket, data, sizeof(data));
-	    ros::Duration(0.025).sleep();
-	    ros::spinOnce();
-		}
+				else{*/
+				data[0]=-20;
+				data[1]=20;
+				data[2]=20;
+				data[3]=-20;
+				printf("go_straight\n");
+				//}
 
+			}
+		//	}
+
+	}
+	//				data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
+	write(c_socket, data, sizeof(data));
+	ros::Duration(0.025).sleep();
+	printf("data[0] %f\n",data[0]);
+	printf("data[1] %f\n",data[1]);
+	printf("data[2] %f\n",data[2]);
+	printf("data[3] %f\n",data[3]);
+}
+}
+
+		ros::spinOnce();
+	}
+	data[0]=0;
+	data[1]=0;
+	data[2]=0;
+	data[3]=0;
+	write(c_socket, data, sizeof(data));
+	ros::Duration(0.025).sleep();
+	printf("finish!!!!\n");
+}
 // 		shortest_obs = 6;
 // 		near_angle = scan_angle[0];
 // 		//printf("ang: %f\n",near_angle);
@@ -318,7 +380,7 @@ int main(int argc, char **argv)
 		//자율 주행 알고리즘에 입력된 제어데이터(xbox 컨트롤러 데이터)를 myRIO에 송신(tcp/ip 통신)
 
 
-    }
+
 
     return 0;
 }
