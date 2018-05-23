@@ -187,16 +187,16 @@ void avoid_wall()
 		data[3]=40;
 	}
 	else if(shortest_angle<=0 && shortest_angle>-90){
-		data[0]=-40;
-		data[1]=0;
-		data[2]=40;
-		data[3]=0;
-	}
-	else{
 		data[0]=0;
 		data[1]=40;
 		data[2]=0;
 		data[3]=-40;
+	}
+	else{
+		data[0]=-40;
+		data[1]=0;
+		data[2]=40;
+		data[3]=0;
 
 	}
 
@@ -402,9 +402,9 @@ while(green_number<2){
 	 	avoid_wall();
 		printf("avoid wall\n");
 	 }
-	else{
-if(red_number!=0 && state==0 && red_distance[near_red]<0.4){// I changed here!!!!!!!
-printf("red_number %d\n",red_number);
+else{
+	if(red_number!=0 && state==0 && red_distance[near_red]<0.4){// I changed here!!!!!!!
+		printf("red_number %d\n",red_number);
 	for(int i=0; i<red_number-1;i++){
 	 if(red_distance[i]<red_distance[i+1]){near_red=i;}
  else if(red_distance[i]==red_distance[i+1]){near_red=i;}
@@ -513,17 +513,18 @@ printf("data[3] %f\n",data[3]);
 }
 }
 
-ros::spinOnce();
 //}
 //data[0]=0;
 //data[1]=0;
 //data[2]=0;
 //data[3]=0;
-write(c_socket, data, sizeof(data));
-ros::Duration(0.025).sleep();
 
 }
 }
+ros::spinOnce();
+write(c_socket, data, sizeof(data));
+ros::Duration(0.025).sleep();
+
 }
 if(shortest<0.28){
  avoid_wall();
