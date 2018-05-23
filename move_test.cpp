@@ -69,6 +69,7 @@ void dataInit()
 	data[2] = 0; //GamepadStickAngle(_dev, STICK_LEFT);
 	data[3] = 0; //GamepadStickLength(_dev, STICK_LEFT);
 	data[4] = 45; //rx*data[7];
+	data[5] = 5;
 }
 
 
@@ -78,6 +79,7 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
     //int count = scan->lidar_distance.size();
 		int count = scan->scan_time / scan->time_increment;
 		lidar_size=count;
+		shortest=10.0;
     for(int i = 0; i < count; i++)
     {
         //lidar_degree[i] = scan->lidar_angle[i];
@@ -99,6 +101,7 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 					shortest_angle=lidar_degree[i];
 				}
     }
+	//	printf("shortest %f \n",shortest);
 }
 void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 {
@@ -160,6 +163,15 @@ void find_ball()
 {
 data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
 }
+void initial_move()
+{
+	for(int i=0;i<400;i++)
+	{
+		data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+	}
+}
 void avoid_wall()
 {
 	if (shortest_angle>0 && shortest_angle<=90){
@@ -197,8 +209,8 @@ void avoid_red(int slide_dist)
 
 		for(int i=0; i<int(slide_dist);i++)
 		{
-			data[0]=30;
-			data[1]=30;
+			data[0]=40;
+			data[1]=40;
 			data[2]=-20;
 			data[3]=-20;
 		//	printf("slide_right\n");
@@ -217,8 +229,8 @@ void avoid_red(int slide_dist)
 		//slide left
 		for(int i=0; i<int(slide_dist);i++)
 		{
-		data[0]=-30;
-		data[1]=-30;
+		data[0]=-40;
+		data[1]=-40;
 		data[2]=20;
 		data[3]=20;
 	//	printf("slide_left\n");
@@ -269,77 +281,68 @@ int main(int argc, char **argv)
 		}*/
 //		int k =0;
 	//	while(k<500){
-    while(ros::ok){
-// 		/////////////////////////////////////////////////////////////////////////////////////////////////
-// 		// // 각노드에서 받아오는 센서 테이터가 잘 받아 왔는지 확인하는 코드 (ctrl + /)을 눌러 주석을 추가/제거할수 있다.///
-// 		/////////////////////////
-// 		////////////////////////////////////////////////////////////////////////
-//
-// 	  /*for(int i = 0; i < lidar_size; i++)
-//    {
-// 	    //std::cout << "degree : "<< lidar_degree[i];
-// 	    //std::cout << "   distance : "<< lidar_distance[i]<<std::endl;
-// 	  }
-// 		for(int i = 0; i < ball_number; i++)
-// 		{
-// 			//std::cout << "ball_X : "<< ball_X[i];
-// 			//std::cout << "ball_Y : "<< ball_Y[i]<<std::endl;
-// 		}*/
-while (ball_get<3){
-	/*	if(shortest<0.28){
-			avoid_wall();
-		}*/
-	//	else{
-			if(ball_number==0 )
-		 {
-			 find_ball();
-				printf("find ball\n");
-		 }
-		else
-		 {
-			 std::vector<int> interrupt;
+	printf("initial move\n");
+	initial_move();
+	finish=0;
+    while(finish==0){
 
-			 near_red=0;
-			 if(red_number!=0 && state==0){
-		 printf("red_number %d\n",red_number);
-				 for(int i=0; i<red_number-1;i++){
-				 	if(red_distance[i]<red_distance[i+1]){near_red=i;}
-			 	else if(red_distance[i]==red_distance[i+1]){near_red=i;}
-			 	else {near_red=i+1;}}
+			while (ball_get<3){
+				if(shortest<0.28){
+					avoid_wall();
+					printf("avoid wall\n");
+					printf("shortest %f\n",shortest);
+				}
+				else{
+				if(ball_number==0 )
+		 			{
+			 			find_ball();
+						printf("find ball\n");
+		 			}
+			else
+		 			{
+			 			std::vector<int> interrupt;
 
-				printf("ball_X_r %f",ball_X_r[near_red]);
-			 	if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<0.4){
-					slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
-			 		avoid_red(slide_dist);
-					state=1;
-			 		printf("avoid\n");
-			 	}
-				else{state=1;}
-			}
+			 			near_red=0;
+			 			if(red_number!=0 && state==0){
+		 					printf("red_number %d\n",red_number);
+			 				for(int i=0; i<red_number-1;i++){
+				 					if(red_distance[i]<red_distance[i+1]){near_red=i;}
+			 						else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+			 						else {near_red=i+1;}}
 
-			else{
-				near_ball=0;
-				state=0;
-				for(int i = 0; i < ball_number-1; i++)
- 					 {
- 				 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
- 				 else if(ball_distance[i]==ball_distance[i+1]){near_ball=i;}
- 				 else {near_ball=i+1;}}
-				printf("ball_number %d\n",ball_number);
-				printf("near %d\n",near_ball);
+							printf("ball_X_r %f",ball_X_r[near_red]);
+	 						if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<0.4){
+								slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
+	 							avoid_red(slide_dist);
+								state=1;
+	 							printf("avoid\n");
+	 							}
+						else{state=1;}
+							}
+
+					else{
+						near_ball=0;
+						state=0;
+						for(int i = 0; i < ball_number-1; i++)
+ 					 		{
+				 				 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
+				 				 else if(ball_distance[i]==ball_distance[i+1]){near_ball=i;}
+				 				 else {near_ball=i+1;}}
+					 printf("ball_number %d\n",ball_number);
+					 printf("near %d\n",near_ball);
 			//	printf("near_ball %d\n",near_ball);
 			//	printf("how many balls? %d\n",ball_number[]);
-			printf("ball distance of first ball %f\n",ball_distance[0]);
-			printf("ball distance of second ball %f\n",ball_distance[1]);
-			if(abs(ball_X[near_ball])>0.03){
-				if(ball_X[near_ball]  > 0){data[0]=15;data[1]=15;data[2]=15;data[3]=15;
+					printf("ball distance of first ball %f\n",ball_distance[0]);
+					printf("ball distance of second ball %f\n",ball_distance[1]);
+			if(abs(ball_X[near_ball])>0.02){
+				if(ball_X[near_ball]  > 0){data[0]=5;data[1]=5;data[2]=5;data[3]=5;
 					printf("turn left\n");
-					printf("nearest_ball_distance %f\n",ball_distance[near_ball]);
+					printf("ball_X %f\n",ball_X[near_ball]);
 		//			printf(" ball_x%f\n",ball_X[near_ball]);
 				}
-				else{data[0]=-15;data[1]=-15;data[2]=-15;data[3]=-15;
+				else{data[0]=-5;data[1]=-5;data[2]=-5;data[3]=-5;
 						printf("turn right\n");
-						printf("nearest_ball_distance %f\n",ball_distance[near_ball]);
+						printf("ball_X %f\n",ball_X[near_ball]);
 			//			printf(" ball_x%f\n",ball_X[near_ball]);
 					}
 
@@ -351,7 +354,7 @@ while (ball_get<3){
 
 								data[0]=-40;data[1]=40;data	[2]=40;data[3]=-40;
 							printf("go straight\n");
-							printf("nearest_ball_distance %f\n",ball_distance[near_ball]);
+							printf("ball_X %f\n",ball_X[near_ball]);
 
 							}
 						else{
@@ -372,13 +375,13 @@ while (ball_get<3){
 									 printf("pick\n");
 									 printf("collector motor %f\n",data[4]);
 								 }
-								 data[0]=0;data[1]=0;data[2]=0;data[3]=0;
+							//	 data[0]=0;data[1]=0;data[2]=0;data[3]=0;
 								 ball_get++;
 							}
 						}
 					}
 				}
-
+			}
 	//	printf("distance:%f\n",ball_distance[near_ball]);
 
 		//자율 주행 알고리즘에 입력된 제어데이터(xbox 컨트롤러 데이터)를 myRIO에 송신(tcp/ip 통신)
@@ -393,13 +396,31 @@ while (ball_get<3){
 	ros::Duration(0.025).sleep();
 	ros::spinOnce();
 }
-data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;
+//data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;
 while(green_number<2){
-	// if(shortest<0.28){
-	// 	avoid_wall();
-	// }
-//	else{
+	 if(shortest<0.28){
+	 	avoid_wall();
+		printf("avoid wall\n");
+	 }
+	else{
+if(red_number!=0 && state==0 && red_distance[near_red]<0.4){// I changed here!!!!!!!
+printf("red_number %d\n",red_number);
+	for(int i=0; i<red_number-1;i++){
+	 if(red_distance[i]<red_distance[i+1]){near_red=i;}
+ else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+ else {near_red=i+1;}}
 
+ printf("ball_X_r %f",ball_X_r[near_red]);
+ if(abs(ball_X_r[near_red])<0.095){
+	 slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
+	 avoid_red(slide_dist);
+	 state=1;
+	 printf("avoid\n");
+ }
+ else{state=1;}
+}
+else{
+	state=0;
 float wall_dist = 6.0;
 int k=0;
 for(int i = 0; i < 179; i++)
@@ -502,9 +523,33 @@ write(c_socket, data, sizeof(data));
 ros::Duration(0.025).sleep();
 
 }
+}
+}
+if(shortest<0.28){
+ avoid_wall();
+}
+else{
+if(red_number!=0 && state==0 && red_distance[near_red]<0.4){//i changed here!!!!!!!!!
+printf("red_number %d\n",red_number);
+	for(int i=0; i<red_number-1;i++){
+	 if(red_distance[i]<red_distance[i+1]){near_red=i;}
+ else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+ else {near_red=i+1;}}
+
+ printf("ball_X_r %f",ball_X_r[near_red]);
+ if(abs(ball_X_r[near_red])<0.095){
+	 slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
+	 avoid_red(slide_dist);
+	 state=1;
+	 printf("avoid\n");
+ }
+ else{state=1;}
+}
+else{
+	state=0;
 	home_x=(ball_X_g[0]+ball_X_g[1])/2;
 	if(abs(home_x)>0.02){
-		if(home_x>0){
+		if(home_x<0){
 			data[0]=30;
 			data[1]=30;
 			data[2]=-30;
@@ -517,14 +562,15 @@ ros::Duration(0.025).sleep();
 			data[3]=30;
 		}}
 	else{
-			if(abs(ball_Y_g[0])>0.2){
+			if(abs(ball_Y_g[0])>0.7){
 				data[0]=-40;
 				data[1]=40;
 				data[2]=40;
 				data[3]=-40;
+				printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 			}
 			else{
-				for(int i=0;i<100;i++){
+				for(int i=0;i<50;i++){
 					data[0]=-40;
 					data[1]=40;
 					data[2]=40;
@@ -539,20 +585,19 @@ ros::Duration(0.025).sleep();
 						data[2]=0;
 						data[3]=0;
 						data[4]=315-90*(i+1);
+						data[5]=-15;
 						write(c_socket, data, sizeof(data));
 						ros::Duration(0.025).sleep();
 						printf("finish!!!!\n");
-
-					}
-					if(i==2){
-						ros::shutdown();
+						finish=1;
 					}
 				}
 				}
 }
 
 
-
+}
+}
 write(c_socket, data, sizeof(data));
 //k++;
 ros::Duration(0.025).sleep();
@@ -562,6 +607,7 @@ ros::spinOnce();
 
 
 }
-
+dataInit();
+write(c_socket, data, sizeof(data));
 return 0;
 }
