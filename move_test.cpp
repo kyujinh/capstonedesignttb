@@ -46,7 +46,7 @@ float ball_Y[20], ball_Y_r[20], ball_Y_g[20];
 float ball_distance[20];
 float red_distance[20];
 float green_distance[20];
-int near_ball, near_red;
+int near_ball, near_red,near_green;
 int ch;
 int c_socket, s_socket;
 struct sockaddr_in c_addr;
@@ -57,11 +57,13 @@ double data[6];
 int ball_get=0;
 #define RAD2DEG(x) ((x)*180./M_PI)
 int slide_dist;
+float green_dist=10.0;
 float shortest=10.0;
 float shortest_angle;
 int finish=0;
-
-
+float wall_angle[400];
+int sh;
+int cond=0;
 void dataInit()
 {
 	data[0] = 0; //lx*data[3];
@@ -89,7 +91,19 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 				float x = lidar_distance[i]*sin(scan->angle_min + scan->angle_increment * i)+0.165;
 				float y = lidar_distance[i]*cos(scan->angle_min + scan->angle_increment * i);
 				lidar_dist_new[i]= sqrt(y*y+x*x);
+			//	printf("x %f\n",x);
+			//	printf("y %f\n",y);
+				if(y>0){
+				wall_angle[i]=RAD2DEG(atan(x/y));}
+				else{
+					if(x>0){
 
+
+					wall_angle[i]=180+RAD2DEG(atan(x/y));}
+					else{
+						wall_angle[i]=-180+RAD2DEG(atan(x/y));
+					}
+}
 
 				//std::cout<<lidar_distance[i] <<"\n";
 		//		printf("lidar_distance %f",lidar_distance[i]);
@@ -98,19 +112,38 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 
 				if(shortest>lidar_dist_new[i]){
 					shortest=lidar_dist_new[i];
-					shortest_angle=lidar_degree[i];
+					shortest_angle=wall_angle[i];
+					sh=i;
 				}
     }
-	//	printf("shortest %f \n",shortest);
+	//	printf("shortest ang%f \n",shortest_angle);
+		float wall_dist=10.0;
+		for(int i=0;i<179;i++){
+			total_dist=lidar_distance[i]+lidar_distance[i+179];
+			if(wall_dist>=total_dist){
+				wall_dist=total_dist;
+				angle=lidar_degree[i];
+				if(i>90.5){
+					ref2=lidar_distance[i+89];
+					ref1=lidar_distance[i-89];
+				}
+				else{
+					ref1=lidar_distance[i+269];
+					ref2=lidar_distance[i+89];
+				}
+			}
+		}
 }
 void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 {
+
     int count_b = position->b_x.size();
 		int count_r=position->r_x.size();
 		int count_g=position->g_x.size();
 		ball_number=count_b;
 		red_number=count_r;
 		green_number=count_g;
+		green_dist=10.0;
     for(int i = 0; i < count_b; i++)
     {
         ball_X[i] = position->b_x[i];
@@ -133,7 +166,13 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 		{
 			ball_X_g[i]=position->g_x[i];
 			ball_Y_g[i]=position->g_y[i];
+			green_distance[i]=ball_X_g[i]*ball_X_g[i]+ball_Y_g[i]*ball_Y_g[i];
+			if(green_dist>=green_distance[i]){
+				green_dist=green_distance[i];
+				near_green=i;
+			}
 		}
+
 	//	printf("ball_number %d\n",ball_number);
 }
 /*void find_ball()
@@ -165,7 +204,7 @@ data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
 }
 void initial_move()
 {
-	for(int i=0;i<400;i++)
+	for(int i=0;i<350;i++)
 	{
 		data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
 		write(c_socket, data, sizeof(data));
@@ -187,62 +226,70 @@ void avoid_wall()
 		data[3]=40;
 	}
 	else if(shortest_angle<=0 && shortest_angle>-90){
-		data[0]=0;
-		data[1]=40;
-		data[2]=0;
-		data[3]=-40;
-	}
-	else{
 		data[0]=-40;
 		data[1]=0;
 		data[2]=40;
-		data[3]=0;
+		data[3]=-0;
+	}
+	else{
+		data[0]=-0;
+		data[1]=40;
+		data[2]=0;
+		data[3]=-40;
 
 	}
 
 }
-void avoid_red(int slide_dist)
+void avoid_red()
 {
+	state=1;
+	for(int i=0; i<red_number-1;i++){
+		if(red_distance[i]<red_distance[i+1]){near_red=i;}
+ 		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+		else {near_red=i+1;}}
+		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.35){
+ 	 		slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
+ 	 		printf("avoid\n");
 
-	if(ball_X_r[near_red]>0){
+			if(ball_X_r[near_red]>0){
 		//slide right
 
-		for(int i=0; i<int(slide_dist);i++)
-		{
-			data[0]=40;
-			data[1]=40;
-			data[2]=-20;
-			data[3]=-20;
-		//	printf("slide_right\n");
-		//	printf("data0:%f\n",data[0]);
-		//	printf("data1:%f\n",data[1]);
-		//	printf("data2:%f\n",data[2]);
-		//	printf("data3:%f\n",data[3]);
+				for(int i=0; i<int(slide_dist);i++)
+				{
+					data[0]=40;
+					data[1]=40;
+					data[2]=-40;
+					data[3]=-40;
+			printf("slide_right\n");
+			printf("data0:%f\n",data[0]);
+			printf("data1:%f\n",data[1]);
+			printf("data2:%f\n",data[2]);
+			printf("data3:%f\n",data[3]);
 
 
-			write(c_socket, data, sizeof(data));
-			ros::Duration(0.025).sleep();
-		}
+				//	write(c_socket, data, sizeof(data));
+				//	ros::Duration(0.025).sleep();
+				}
 
-	}
-	else{
+			}
+		else{
 		//slide left
-		for(int i=0; i<int(slide_dist);i++)
-		{
-		data[0]=-40;
-		data[1]=-40;
-		data[2]=20;
-		data[3]=20;
-	//	printf("slide_left\n");
-	//	printf("data0:%f\n",data[0]);
-	//	printf("data1:%f\n",data[1]);
-	//	printf("data2:%f\n",data[2]);
-	//	printf("data3:%f\n",data[3]);
+			for(int i=0; i<int(slide_dist);i++)
+			{
+				data[0]=-40;
+				data[1]=-40;
+				data[2]=40;
+				data[3]=40;
+			printf("slide_left\n");
+			printf("data0:%f\n",data[0]);
+			printf("data1:%f\n",data[1]);
+			printf("data2:%f\n",data[2]);
+			printf("data3:%f\n",data[3]);
 
 
-		write(c_socket, data, sizeof(data));
-		ros::Duration(0.025).sleep();
-	}
+			//	write(c_socket, data, sizeof(data));
+			//	ros::Duration(0.025).sleep();
+		}
 	}
 
 	//printf("data0:%f\n",data[0]);
@@ -251,7 +298,40 @@ void avoid_red(int slide_dist)
 	//printf("data3:%f\n",data[3]);
 
 }
+}
+void lidar_move(){
+		if(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()||lidar_distance[0]==std::numeric_limits<float>::infinity()||lidar_distance[179]==std::numeric_limits<float>::infinity()){
+		//		write(c_socket, data, sizeof(data));
+		//		ros::Duration(0.025).sleep();
+	}
+		else{
+			if(ref1<ref2){
+				if(angle<-15){
+					data[0]=20;data[1]=20;data[2]=20;data[3]=20;
+					printf("turn left\n");
+					printf("angle %f\n",angle);
+				}
+				else{
+					data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+					printf("go_straight\n");
+				}
+			}
+			else{
+				if(angle>-165){
+					data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
+					printf("turn right\n");
+					printf("angle %f\n",angle);
+				}
+				else{
+					data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+					printf("go_straight\n");
 
+				}
+			}
+		//	write(c_socket, data, sizeof(data));
+		//	ros::Duration(0.025).sleep();
+		}
+}
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "move_test");
@@ -268,7 +348,7 @@ int main(int argc, char **argv)
     c_addr.sin_family = AF_INET;
     c_addr.sin_port = htons(PORT);
 
-  if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
+ if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
          printf("Failed to connect\n");
          close(c_socket);
          return -1;
@@ -287,68 +367,59 @@ int main(int argc, char **argv)
     while(finish==0){
 
 			while (ball_get<3){
-				if(shortest<0.28){
+				if(shortest<0.26){
 					avoid_wall();
 					printf("avoid wall\n");
 					printf("shortest %f\n",shortest);
 				}
 				else{
-				if(ball_number==0 )
-		 			{
-			 			find_ball();
-						printf("find ball\n");
-		 			}
-			else
-		 			{
-			 			std::vector<int> interrupt;
-
-			 			near_red=0;
-			 			if(red_number!=0 && state==0){
-		 					printf("red_number %d\n",red_number);
-			 				for(int i=0; i<red_number-1;i++){
-				 					if(red_distance[i]<red_distance[i+1]){near_red=i;}
-			 						else if(red_distance[i]==red_distance[i+1]){near_red=i;}
-			 						else {near_red=i+1;}}
-
-							printf("ball_X_r %f",ball_X_r[near_red]);
-	 						if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<0.4){
-								slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
-	 							avoid_red(slide_dist);
-								state=1;
-	 							printf("avoid\n");
-	 							}
-						else{state=1;}
-							}
-
-					else{
-						near_ball=0;
-						state=0;
-						for(int i = 0; i < ball_number-1; i++)
- 					 		{
+					if(ball_number==0 )
+			 			{
+				 			find_ball();
+							//initial_move();
+						//	printf("find ball\n");
+			 			}
+					else
+			 			{
+				 			near_red=0;
+							for(int i = 0; i < ball_number-1; i++)
+								{
+								 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
+								 else if(ball_distance[i]==ball_distance[i+1]){near_ball=i;}
+								 else {near_ball=i+1;}}
+				 			if(red_number!=0 && state==0){
+			 						avoid_red();
+									printf("avoid\n");
+		 							}
+							else{
+								near_ball=0;
+								state=0;
+							for(int i = 0; i < ball_number-1; i++)
+	 					 		{
 				 				 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
 				 				 else if(ball_distance[i]==ball_distance[i+1]){near_ball=i;}
 				 				 else {near_ball=i+1;}}
-					 printf("ball_number %d\n",ball_number);
-					 printf("near %d\n",near_ball);
-			//	printf("near_ball %d\n",near_ball);
-			//	printf("how many balls? %d\n",ball_number[]);
-					printf("ball distance of first ball %f\n",ball_distance[0]);
-					printf("ball distance of second ball %f\n",ball_distance[1]);
-			if(abs(ball_X[near_ball])>0.02){
-				if(ball_X[near_ball]  > 0){data[0]=5;data[1]=5;data[2]=5;data[3]=5;
-					printf("turn left\n");
-					printf("ball_X %f\n",ball_X[near_ball]);
+						 printf("ball_number %d\n",ball_number);
+						 printf("near %d\n",near_ball);
+				//	printf("near_ball %d\n",near_ball);
+				//	printf("how many balls? %d\n",ball_number[]);
+						printf("ball distance of first ball %f\n",ball_distance[0]);
+						printf("ball distance of second ball %f\n",ball_distance[1]);
+						if(abs(ball_X[near_ball])>0.02){
+							if(ball_X[near_ball]  > 0){data[0]=5;data[1]=5;data[2]=5;data[3]=5;
+								printf("turn left\n");
+								printf("ball_X %f\n",ball_X[near_ball]);
 		//			printf(" ball_x%f\n",ball_X[near_ball]);
-				}
-				else{data[0]=-5;data[1]=-5;data[2]=-5;data[3]=-5;
-						printf("turn right\n");
-						printf("ball_X %f\n",ball_X[near_ball]);
+								}
+							else{data[0]=-5;data[1]=-5;data[2]=-5;data[3]=-5;
+								printf("turn right\n");
+								printf("ball_X %f\n",ball_X[near_ball]);
 			//			printf(" ball_x%f\n",ball_X[near_ball]);
-					}
+								}
 
-					}
+							}
 
-				else{
+					else{
 						if(ball_distance[near_ball]>0.3)
 							{
 
@@ -358,7 +429,7 @@ int main(int argc, char **argv)
 
 							}
 						else{
-								 for (int i=0;i<200;i++)
+								 for (int i=0;i<180;i++)
 								 {
 									 data[0]=-30;data[1]=30;data[2]=30;data[3]=-30;
 									 write(c_socket, data, sizeof(data));
@@ -366,6 +437,7 @@ int main(int argc, char **argv)
 									 printf("let's go\n");
 									 printf("collector motor %f\n",data[4]);
 								 }
+
 								 ros::Duration(0.025).sleep();
 								 for (int i=0;i<100;i++)
 								 {
@@ -396,159 +468,87 @@ int main(int argc, char **argv)
 	ros::Duration(0.025).sleep();
 	ros::spinOnce();
 }
-//data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;
-while(green_number<2){
-	 if(shortest<0.28){
-	 	avoid_wall();
-		printf("avoid wall\n");
-	 }
-else{
-	if(red_number!=0 && state==0 && red_distance[near_red]<0.4){// I changed here!!!!!!!
-		printf("red_number %d\n",red_number);
-	for(int i=0; i<red_number-1;i++){
-	 if(red_distance[i]<red_distance[i+1]){near_red=i;}
- else if(red_distance[i]==red_distance[i+1]){near_red=i;}
- else {near_red=i+1;}}
+//data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;'
+	printf("here?2\n");
+while(green_dist>1.0||green_number<2){
+	printf("green_dist %f\n",green_dist);
+	printf("green_num %d\n",green_number);
+if((abs(ref1-ref2)>0.2 ||(ref1==std::numeric_limits<float>::infinity()&&ref2==std::numeric_limits<float>::infinity()))&& cond==0){
+		printf("ref %f\n",abs(ref1-ref2));
+		printf("ref1 %f\n",ref1);
+		printf("ref2 %f\n",ref2);
 
- printf("ball_X_r %f",ball_X_r[near_red]);
- if(abs(ball_X_r[near_red])<0.095){
-	 slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
-	 avoid_red(slide_dist);
-	 state=1;
-	 printf("avoid\n");
- }
- else{state=1;}
+		lidar_move();
+
+	//	ros::spinOnce();
 }
 else{
-	state=0;
-float wall_dist = 6.0;
-int k=0;
-for(int i = 0; i < 179; i++)
-	{
-		// if(lidar_distance[i]<lidar_distance[i+1]){lidar_obs=i;}
-		// else if(lidar_distance[i]==lidar_distance[i+1]){lidar_obs=i;}
-		// else {lidar_obs=i+1;}
-		total_dist = lidar_distance[i] + lidar_distance[i+179];
-
-		if (wall_dist>=total_dist){
-			wall_dist = total_dist;
-			angle = lidar_degree[i];
-			if ( i > 90.5){
-				//turn right
-				ref2 = lidar_distance[i+89];
-				ref1 = lidar_distance[i-89];
-				k=i;
-
-			}
-			else if( i < 90.5){
-				//turn left
-				ref1 = lidar_distance[i+269];
-				ref2 = lidar_distance[i+89];
-				k=i;
-			}
+	printf("ref %f\n",abs(ref1-ref2));
+	printf("ref1 %f\n",ref1);
+	printf("ref2 %f\n",ref2);
+	cond=1;
+	printf("shortest %f\n",shortest);
+	if(shortest>1.53){
+		if(sh<90){
+			data[0]=30;
+			data[1]=30;
+			data[2]=-30;
+			data[3]=-30;
 		}
-
-			}
-	//	printf("distance: %f\n",wall_dist);
-	//		printf(" theta: %f\n",angle);
-			//printf(" ind: %d\n",i);
-for(int i=0;i<1;i++){
-if(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()||lidar_distance[0]==std::numeric_limits<float>::infinity()||lidar_distance[179]==std::numeric_limits<float>::infinity()){
-write(c_socket, data, sizeof(data));
-ros::Duration(0.025).sleep();
-printf("here?\n");
-
-break;
-}
-else{
-printf(" ref1: %f\n", ref1);
-printf(" ref2: %f\n", ref2);
-printf("k %d\n",k);
-printf("angle %f\n",angle);
-
-
-//	while(green_number<2){
-	if(ref1<ref2){
-		if(  angle<-15){
-			data[0]=20;data[1]=20;data[2]=20;data[3]=20;
-			printf("turn left\n");
-			printf("angle %f\n",angle);
-
-		}
-		else
-		{
-			data[0]=-20;
-			data[1]=20;
-			data[2]=20;
-			data[3]=-20;
-			printf("go_straight\n");
+		else{
+			data[0]=-30;
+			data[1]=-30;
+			data[2]=30;
+			data[3]=30;
 		}
 	}
-	else {
-		if(-165<angle){
-			data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
-			printf("turn right\n");
-			printf("angle %f\n",angle);
-
-		}
-		else
-		{
-		data[0]=-20;
-		data[1]=20;
-		data[2]=20;
-		data[3]=-20;
-		printf("go_straight\n");
-
-
+	else{
+		data[0]=-40;
+		data[1]=40;
+		data[2]=40;
+		data[3]=-40;
 	}
-
-
 }
 write(c_socket, data, sizeof(data));
 ros::Duration(0.025).sleep();
-printf("data[0] %f\n",data[0]);
-printf("data[1] %f\n",data[1]);
-printf("data[2] %f\n",data[2]);
-printf("data[3] %f\n",data[3]);
-}
-}
-
-//}
-//data[0]=0;
-//data[1]=0;
-//data[2]=0;
-//data[3]=0;
-
-}
-}
 ros::spinOnce();
-write(c_socket, data, sizeof(data));
-ros::Duration(0.025).sleep();
+}
+	printf("green_num %d\n",green_number);
 
-}
-if(shortest<0.28){
- avoid_wall();
-}
-else{
-if(red_number!=0 && state==0 && red_distance[near_red]<0.4){//i changed here!!!!!!!!!
-printf("red_number %d\n",red_number);
-	for(int i=0; i<red_number-1;i++){
-	 if(red_distance[i]<red_distance[i+1]){near_red=i;}
- else if(red_distance[i]==red_distance[i+1]){near_red=i;}
- else {near_red=i+1;}}
-
- printf("ball_X_r %f",ball_X_r[near_red]);
- if(abs(ball_X_r[near_red])<0.095){
-	 slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
-	 avoid_red(slide_dist);
-	 state=1;
-	 printf("avoid\n");
- }
- else{state=1;}
-}
-else{
-	state=0;
-	home_x=(ball_X_g[0]+ball_X_g[1])/2;
+	printf("here?\n");
+	for(int i=0;i<100;i++){
+		data[0]=30;
+		data[1]=30;
+		data[2]=30;
+		data[3]=30;
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+	}
+	for(int i=0;i<20;i++){
+		data[0]=0;
+		data[1]=0;
+		data[2]=0;
+		data[3]=0;
+		data[4]=270;
+		data[5]=15;
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+		printf("hit the red ball\n");
+	}
+	for(int i=0;i<100;i++){
+		data[0]=-30;
+		data[1]=-30;
+		data[2]=-30;
+		data[3]=-30;
+		data[4]=315;
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+		ros::spinOnce();
+	}
+	while(abs(ball_Y_g[0])>0.7){
+		home_x=(ball_X_g[0]+ball_X_g[1])/2;
+		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
+		printf("home_x %f\n",home_x);
 	if(abs(home_x)>0.02){
 		if(home_x<0){
 			data[0]=30;
@@ -563,14 +563,16 @@ else{
 			data[3]=30;
 		}}
 	else{
-			if(abs(ball_Y_g[0])>0.7){
+
 				data[0]=-40;
 				data[1]=40;
 				data[2]=40;
 				data[3]=-40;
-				printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 			}
-			else{
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+			ros::spinOnce();
+		}
 				for(int i=0;i<50;i++){
 					data[0]=-40;
 					data[1]=40;
@@ -594,21 +596,10 @@ else{
 					}
 				}
 				}
-}
+
+				dataInit();
+				write(c_socket, data, sizeof(data));
+				return 0;
 
 
-}
-}
-write(c_socket, data, sizeof(data));
-//k++;
-ros::Duration(0.025).sleep();
-ros::spinOnce();
-
-		//	std::cout << "data : "<<data[0];
-
-
-}
-dataInit();
-write(c_socket, data, sizeof(data));
-return 0;
 }
