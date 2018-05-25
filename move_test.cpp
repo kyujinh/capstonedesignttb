@@ -249,7 +249,7 @@ void avoid_red()
  		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
 		else {near_red=i+1;}}
 		printf("red_distance %f\n",red_distance[near_red]);
-		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.45){
+		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.5){
  	 		slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
  	 		printf("avoid\n");
 
@@ -365,9 +365,6 @@ int main(int argc, char **argv)
 	//	while(k<500){
 	printf("initial move\n");
 	initial_move();
-	finish=0;
-    while(finish==0){
-
 			while (ball_get<3){
 				if(ball_get==1){
 					break;
@@ -557,7 +554,9 @@ ros::spinOnce();
 		ros::Duration(0.025).sleep();
 		ros::spinOnce();
 	}
-	if(sh > 94 || sh < 86){
+
+	printf("sh %d\n",sh);
+	while(sh > 94 || sh < 86){
 		if(sh>90.5){
 			data[0] = 20;
 			data[1] = 20;
@@ -570,9 +569,12 @@ ros::spinOnce();
 			data[2] = -20;
 			data[3] = -20;
 		}
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+		ros::spinOnce();
 
 	}
-	else{
+		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 	while(abs(ball_Y_g[0])>0.7){
 		home_x=(ball_X_g[0]+ball_X_g[1])/2;
 		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
@@ -626,8 +628,8 @@ ros::spinOnce();
 						finish=1;
 					}
 				}
-				}
-}
+
+
 				dataInit();
 				write(c_socket, data, sizeof(data));
 				return 0;
