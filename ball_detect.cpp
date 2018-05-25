@@ -24,9 +24,9 @@ ros::Publisher pub_markers_g;
 
 int low_h_b=90, low_s_b=200, low_v_b=100;//
 int high_h_b=110, high_s_b=255, high_v_b=255;//
-int low_h2_r=166, high_h2_r=180;//
-int low_h_r=0, low_s_r=81, low_v_r=129;//
-int high_h_r=1, high_s_r=255, high_v_r=255;//
+int low_h2_r=170, high_h2_r=180;//
+int low_h_r=0, low_s_r=200, low_v_r=85;//
+int high_h_r=0, high_s_r=255, high_v_r=255;//
 int lowThreshold_r = 100;
 int ratio_r = 3;
 int kernel_size_r = 3;
@@ -52,7 +52,7 @@ float fball_radius = 0.0734 ; // meter: The unit which is used in the initializa
 Mat distCoeffs;
 float intrinsic_data[9] = {715.032256, 0, 347.884084, 0, 715.316998, 231.873067, 0, 0, 1};
 float distortion_data[5] = {0.044202, -0.152627, 0.001762, 0.001029, 0};
-int iMin_tracking_ball_size = 20; // This is the minimum tracking ball size, in pixels.
+int iMin_tracking_ball_size = 10; // This is the minimum tracking ball size, in pixels.
 
 // Here, we start our main function.
 void ball_detect()
@@ -395,20 +395,21 @@ void ball_detect()
           }
       }
 
-
+      kg=0;
       for(int i=0;i<contours_g.size();i++){
-   if(check_g[i]==0&&radius_g[i] > 5){
-     std::cout<<i<<": "<<check_g[i]<<" //";
+   if(check_g[i]==0&&radius_g[i] > iMin_tracking_ball_size){
+
      kg++;
    }
       }
+std::cout<<"kg : "<<kg<<" //";
           msg.img_g_x.resize(kg);  //adjust the size of array
           msg.img_g_y.resize(kg);  //adjust the size of array
           msg.img_g_z.resize(kg);
           int alphag=0;
 
         for( size_t i = 0; i< contours_g.size(); i++ ){
-          if(radius_g[i] > 5&& check_g[i]==0){
+          if(radius_g[i] > iMin_tracking_ball_size&& check_g[i]==0){
             Scalar color = Scalar( 0, 255, 0);
             //drawContours( hsv_frame_green_canny, contours_g_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
             vector<float> ball_position_g;// Color is converted from BGR color space to HSV color space.
