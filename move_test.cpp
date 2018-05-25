@@ -369,7 +369,9 @@ int main(int argc, char **argv)
     while(finish==0){
 
 			while (ball_get<3){
-
+				if(ball_get==1){
+					break;
+				}
 				if(shortest<0.26){
 					avoid_wall();
 					printf("avoid wall\n");
@@ -476,7 +478,7 @@ while(green_dist>1.0||green_number<2){
 	else{
 	printf("green_dist %f\n",green_dist);
 	printf("green_num %d\n",green_number);
-if((abs(ref1-ref2)>0.2 ||(ref1==std::numeric_limits<float>::infinity()&&ref2==std::numeric_limits<float>::infinity()))&& cond==0){
+if((abs(ref1-ref2)>0.2 ||(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()))&& cond==0){
 		printf("ref %f\n",abs(ref1-ref2));
 		printf("ref1 %f\n",ref1);
 		printf("ref2 %f\n",ref2);
@@ -555,15 +557,49 @@ ros::spinOnce();
 		ros::Duration(0.025).sleep();
 		ros::spinOnce();
 	}
+	if(sh > 94 || sh < 86){
+		if(sh>90.5){
+			data[0] = 20;
+			data[1] = 20;
+			data[2] = 20;
+			data[3] = 20;
+		}
+		else{
+			data[0] = -20;
+			data[1] = -20;
+			data[2] = -20;
+			data[3] = -20;
+		}
+
+	}
+	else{
 	while(abs(ball_Y_g[0])>0.7){
 		home_x=(ball_X_g[0]+ball_X_g[1])/2;
 		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 		printf("home_x %f\n",home_x);
+			if(abs(home_x)>0.03){
+				if(home_x>0){
+					data[0]=-30;
+					data[1]=-30;
+					data[2]=30;
+					data[3]=30;
+				}
+				else{
+					data[0]=30;
+					data[1]=30;
+					data[2]=-30;
+					data[3]=-30;
 
+				}
+			}
+
+			else{
 				data[0]=-40;
 				data[1]=40;
 				data[2]=40;
 				data[3]=-40;
+			}
+
 			write(c_socket, data, sizeof(data));
 			ros::Duration(0.025).sleep();
 			ros::spinOnce();
@@ -591,7 +627,7 @@ ros::spinOnce();
 					}
 				}
 				}
-
+}
 				dataInit();
 				write(c_socket, data, sizeof(data));
 				return 0;
