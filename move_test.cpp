@@ -214,16 +214,16 @@ void initial_move()
 void avoid_wall()
 {
 	if (shortest_angle>0 && shortest_angle<=90){
-		data[0]=40;
-		data[1]=0;
-		data[2]=-40;
-		data[3]=0;
-	}
-	else if(shortest_angle>90 && shortest_angle<=180){
 		data[0]=0;
 		data[1]=-40;
 		data[2]=0;
 		data[3]=40;
+	}
+	else if(shortest_angle>90 && shortest_angle<=180){
+		data[0]=40;
+		data[1]=0;
+		data[2]=-40;
+		data[3]=0;
 	}
 	else if(shortest_angle<=0 && shortest_angle>-90){
 		data[0]=-40;
@@ -243,11 +243,13 @@ void avoid_wall()
 void avoid_red()
 {
 	state=1;
+	near_red=0;
 	for(int i=0; i<red_number-1;i++){
 		if(red_distance[i]<red_distance[i+1]){near_red=i;}
  		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
 		else {near_red=i+1;}}
-		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.35){
+		printf("red_distance %f\n",red_distance[near_red]);
+		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.45){
  	 		slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
  	 		printf("avoid\n");
 
@@ -261,10 +263,10 @@ void avoid_red()
 					data[2]=-40;
 					data[3]=-40;
 			printf("slide_right\n");
-			printf("data0:%f\n",data[0]);
-			printf("data1:%f\n",data[1]);
-			printf("data2:%f\n",data[2]);
-			printf("data3:%f\n",data[3]);
+		//	printf("data0:%f\n",data[0]);
+		//	printf("data1:%f\n",data[1]);
+		//	printf("data2:%f\n",data[2]);
+		//	printf("data3:%f\n",data[3]);
 
 
 				//	write(c_socket, data, sizeof(data));
@@ -281,10 +283,10 @@ void avoid_red()
 				data[2]=40;
 				data[3]=40;
 			printf("slide_left\n");
-			printf("data0:%f\n",data[0]);
-			printf("data1:%f\n",data[1]);
-			printf("data2:%f\n",data[2]);
-			printf("data3:%f\n",data[3]);
+	//		printf("data0:%f\n",data[0]);
+	//		printf("data1:%f\n",data[1]);
+	//		printf("data2:%f\n",data[2]);
+	//		printf("data3:%f\n",data[3]);
 
 
 			//	write(c_socket, data, sizeof(data));
@@ -367,6 +369,7 @@ int main(int argc, char **argv)
     while(finish==0){
 
 			while (ball_get<3){
+
 				if(shortest<0.26){
 					avoid_wall();
 					printf("avoid wall\n");
@@ -377,11 +380,11 @@ int main(int argc, char **argv)
 			 			{
 				 			find_ball();
 							//initial_move();
-						//	printf("find ball\n");
+							printf("find ball\n");
 			 			}
 					else
 			 			{
-				 			near_red=0;
+							near_ball=0;
 							for(int i = 0; i < ball_number-1; i++)
 								{
 								 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
@@ -392,19 +395,13 @@ int main(int argc, char **argv)
 									printf("avoid\n");
 		 							}
 							else{
-								near_ball=0;
 								state=0;
-							for(int i = 0; i < ball_number-1; i++)
-	 					 		{
-				 				 if(ball_distance[i]<ball_distance[i+1]){near_ball=i;}
-				 				 else if(ball_distance[i]==ball_distance[i+1]){near_ball=i;}
-				 				 else {near_ball=i+1;}}
-						 printf("ball_number %d\n",ball_number);
-						 printf("near %d\n",near_ball);
+			//			 printf("ball_number %d\n",ball_number);
+			//			 printf("near %d\n",near_ball);
 				//	printf("near_ball %d\n",near_ball);
 				//	printf("how many balls? %d\n",ball_number[]);
-						printf("ball distance of first ball %f\n",ball_distance[0]);
-						printf("ball distance of second ball %f\n",ball_distance[1]);
+				//		printf("ball distance of first ball %f\n",ball_distance[0]);
+				//		printf("ball distance of second ball %f\n",ball_distance[1]);
 						if(abs(ball_X[near_ball])>0.02){
 							if(ball_X[near_ball]  > 0){data[0]=5;data[1]=5;data[2]=5;data[3]=5;
 								printf("turn left\n");
@@ -471,6 +468,12 @@ int main(int argc, char **argv)
 //data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;'
 	printf("here?2\n");
 while(green_dist>1.0||green_number<2){
+	if(shortest<0.26){
+		avoid_wall();
+		printf("avoid wall\n");
+		printf("shortest %f\n",shortest);
+	}
+	else{
 	printf("green_dist %f\n",green_dist);
 	printf("green_num %d\n",green_number);
 if((abs(ref1-ref2)>0.2 ||(ref1==std::numeric_limits<float>::infinity()&&ref2==std::numeric_limits<float>::infinity()))&& cond==0){
@@ -488,8 +491,9 @@ else{
 	printf("ref2 %f\n",ref2);
 	cond=1;
 	printf("shortest %f\n",shortest);
-	if(shortest>1.53){
-		if(sh<90){
+	printf("sh %d\n",sh);
+	if(shortest<1.0){
+		if(sh>90){
 			data[0]=30;
 			data[1]=30;
 			data[2]=-30;
@@ -509,9 +513,15 @@ else{
 		data[3]=-40;
 	}
 }
+}
+// printf("data1 %f",data[0]);
+// printf(" data2 %f",data[1]);
+// printf(" data3 %f",data[2]);
+// printf(" data4 %f",data[3]);
 write(c_socket, data, sizeof(data));
 ros::Duration(0.025).sleep();
 ros::spinOnce();
+
 }
 	printf("green_num %d\n",green_number);
 
@@ -549,35 +559,20 @@ ros::spinOnce();
 		home_x=(ball_X_g[0]+ball_X_g[1])/2;
 		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 		printf("home_x %f\n",home_x);
-	if(abs(home_x)>0.02){
-		if(home_x<0){
-			data[0]=30;
-			data[1]=30;
-			data[2]=-30;
-			data[3]=-30;
-		}
-		else{
-			data[0]=-30;
-			data[1]=-30;
-			data[2]=30;
-			data[3]=30;
-		}}
-	else{
 
 				data[0]=-40;
 				data[1]=40;
 				data[2]=40;
 				data[3]=-40;
-			}
 			write(c_socket, data, sizeof(data));
 			ros::Duration(0.025).sleep();
 			ros::spinOnce();
 		}
 				for(int i=0;i<50;i++){
-					data[0]=-40;
-					data[1]=40;
-					data[2]=40;
-					data[3]=-40;
+					data[0]=0;
+					data[1]=0;
+					data[2]=0;
+					data[3]=0;
 					write(c_socket, data, sizeof(data));
 					ros::Duration(0.025).sleep();
 				}
