@@ -36,7 +36,7 @@ float theta;
 int lidar_size;
 float lidar_degree[400], scan_angle[181], angle, total_dist,ref1,ref2;
 float lidar_distance[400],lidar_dist_new[400];
-float lidar_obs;
+float lidar_obs, shortang;
 float home_x;
 int ball_number;
 int red_number;
@@ -59,6 +59,7 @@ int ball_get=0;
 int slide_dist;
 float green_dist=10.0;
 float shortest=10.0;
+float shortest_new;
 float shortest_angle;
 int finish=0;
 float wall_angle[400];
@@ -82,6 +83,7 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 		int count = scan->scan_time / scan->time_increment;
 		lidar_size=count;
 		shortest=10.0;
+		shortest_new=10.0;
     for(int i = 0; i < count; i++)
     {
         //lidar_degree[i] = scan->lidar_angle[i];
@@ -109,11 +111,15 @@ void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
 		//		printf("lidar_distance %f",lidar_distance[i]);
 		//		printf(" new_distance %f\n",lidar_dist_new[i]);
 		//		printf(" angle %f\n",lidar_degree[i]);
-
-				if(shortest>lidar_dist_new[i]){
-					shortest=lidar_dist_new[i];
+				if(shortest_new>lidar_dist_new[i]){
+					shortest_new=lidar_dist_new[i];
 					shortest_angle=wall_angle[i];
+				}
+				if(shortest>lidar_distance[i]){
+					shortest=lidar_distance[i];
+
 					sh=i;
+					shortang = lidar_degree[i];
 				}
     }
 	//	printf("shortest ang%f \n",shortest_angle);
@@ -143,7 +149,7 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 		ball_number=count_b;
 		red_number=count_r;
 		green_number=count_g;
-		green_dist=10.0;
+		green_dist=0.0;
     for(int i = 0; i < count_b; i++)
     {
         ball_X[i] = position->b_x[i];
@@ -167,7 +173,7 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 			ball_X_g[i]=position->g_x[i];
 			ball_Y_g[i]=position->g_y[i];
 			green_distance[i]=ball_X_g[i]*ball_X_g[i]+ball_Y_g[i]*ball_Y_g[i];
-			if(green_dist>=green_distance[i]){
+			if(green_dist<=green_distance[i]){
 				green_dist=green_distance[i];
 				near_green=i;
 			}
@@ -249,10 +255,10 @@ void avoid_red()
  		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
 		else {near_red=i+1;}}
 		printf("red_distance %f\n",red_distance[near_red]);
-		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.5){
- 	 		slide_dist = int(1200*(0.1-abs(ball_X_r[near_red])));
+		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.4){
+ 	 		slide_dist = int(1400*(0.1-abs(ball_X_r[near_red])));
  	 		printf("avoid\n");
-
+			printf("red_distance %f\n ",red_distance[near_red]);
 			if(ball_X_r[near_red]>0){
 		//slide right
 
@@ -366,10 +372,8 @@ int main(int argc, char **argv)
 	printf("initial move\n");
 	initial_move();
 			while (ball_get<3){
-				if(ball_get==1){
-					break;
-				}
-				if(shortest<0.26){
+
+				if(shortest_new<0.26){
 					avoid_wall();
 					printf("avoid wall\n");
 					printf("shortest %f\n",shortest);
@@ -435,7 +439,7 @@ int main(int argc, char **argv)
 								 }
 
 								 ros::Duration(0.025).sleep();
-								 for (int i=0;i<100;i++)
+								 for (int i=0;i<50;i++)
 								 {
 									 data[0]=-20;data[1]=20;data[2]=20;data[3]=-20;data[4]=45+90*(ball_get+1);
 									 write(c_socket, data, sizeof(data));
@@ -466,8 +470,8 @@ int main(int argc, char **argv)
 }
 //data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;'
 	printf("here?2\n");
-while(green_dist>1.0||green_number<2){
-	if(shortest<0.26){
+while(green_dist>0.82||green_number<2){
+	if(shortest_new<0.26){
 		avoid_wall();
 		printf("avoid wall\n");
 		printf("shortest %f\n",shortest);
@@ -490,15 +494,16 @@ else{
 	printf("ref2 %f\n",ref2);
 	cond=1;
 	printf("shortest %f\n",shortest);
-	printf("sh %d\n",sh);
-	if(shortest<1.0){
-		if(sh>90){
+	printf("shortang %f\n",shortang);
+	if(shortest<1.45){
+		if(shortang>-90 && shortang<90){
 			data[0]=30;
 			data[1]=30;
 			data[2]=-30;
 			data[3]=-30;
 		}
 		else{
+
 			data[0]=-30;
 			data[1]=-30;
 			data[2]=30;
@@ -524,6 +529,15 @@ ros::spinOnce();
 }
 	printf("green_num %d\n",green_number);
 
+	for(int i=0;i<80;i++){
+		data[0]=-30;
+		data[1]=30;
+		data[2]=30;
+		data[3]=-30;
+		write(c_socket, data, sizeof(data));
+		ros::Duration(0.025).sleep();
+
+	}
 	printf("here?\n");
 	for(int i=0;i<100;i++){
 		data[0]=30;
@@ -534,40 +548,53 @@ ros::spinOnce();
 		ros::Duration(0.025).sleep();
 	}
 	for(int i=0;i<20;i++){
-		data[0]=0;
-		data[1]=0;
-		data[2]=0;
-		data[3]=0;
+		data[0]=-30;
+		data[1]=30;
+		data[2]=30;
+		data[3]=-30;
 		data[4]=270;
 		data[5]=15;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 		printf("hit the red ball\n");
 	}
+	for(int i=0;i<20;i++){
+			data[0]=30;
+			data[1]=-30;
+			data[2]=-30;
+			data[3]=30;
+			data[4]=315;
+			data[5]=15;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+			//printf("hit the red ball\n");
+		}
 	for(int i=0;i<100;i++){
 		data[0]=-30;
 		data[1]=-30;
 		data[2]=-30;
 		data[3]=-30;
-		data[4]=315;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 		ros::spinOnce();
 	}
 
-	printf("sh %d\n",sh);
-	while(sh > 94 || sh < 86){
-		if(sh>90.5){
-			data[0] = 20;
-			data[1] = 20;
-			data[2] = 20;
-			data[3] = 20;
-		}
-		else{
+	//printf("sh %d\n",sh);
+	while(shortang > 91.0 || shortang < 89.0 || green_number<2){
+		printf("sh %f\n",shortang);
+		printf("green_num %d\n",green_number);
+		printf("shortest %f\n",shortest);
+		if(shortang>90.0){
 			data[0] = -20;
 			data[1] = -20;
 			data[2] = -20;
 			data[3] = -20;
+		}
+		else{
+			data[0] = 20;
+			data[1] =20;
+			data[2] =20;
+			data[3] = 20;
 		}
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
@@ -606,29 +633,52 @@ ros::spinOnce();
 			ros::Duration(0.025).sleep();
 			ros::spinOnce();
 		}
-				for(int i=0;i<50;i++){
-					data[0]=0;
-					data[1]=0;
-					data[2]=0;
-					data[3]=0;
+				while(shortest>0.42){
+					data[0]=-30;
+					data[1]=30;
+					data[2]=30;
+					data[3]=-30;
 					write(c_socket, data, sizeof(data));
 					ros::Duration(0.025).sleep();
+					ros::spinOnce();
+					printf("shortest %f\n",shortest);
 				}
 				for(int i=0;i<3;i++){
-					for(int j=0;j<50;j++){
+					for(int j=0;j<100;j++){
 						data[0]=0;
 						data[1]=0;
 						data[2]=0;
 						data[3]=0;
 						data[4]=315-90*(i+1);
-						data[5]=-15;
+						data[5]=50;
 						write(c_socket, data, sizeof(data));
 						ros::Duration(0.025).sleep();
 						printf("finish!!!!\n");
 						finish=1;
 					}
 				}
-
+				for(int i=0;i<3;i++){
+					for(int j=0;j<50;j++){
+						data[0]=-10;
+						data[1]=10;
+						data[2]=10;
+						data[3]=-10;
+						data[4]=45;
+						data[5]=50;
+						write(c_socket, data, sizeof(data));
+						ros::Duration(0.025).sleep();
+					}
+					for(int j=0;j<50;j++){
+						data[0]=0;
+						data[1]=0;
+						data[2]=0;
+						data[3]=0;
+						data[4]=0;
+						data[5]=50;
+						write(c_socket, data, sizeof(data));
+						ros::Duration(0.025).sleep();
+					}
+				}
 
 				dataInit();
 				write(c_socket, data, sizeof(data));
