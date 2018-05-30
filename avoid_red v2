@@ -1,0 +1,45 @@
+void avoid_red()
+{
+	state=1;
+	near_red=0;
+	for(int i=0; i<red_number-1;i++){
+		if(red_distance[i]<red_distance[i+1]){near_red=i;}
+ 		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+		else {near_red=i+1;}}
+		printf("red_distance %f\n",red_distance[near_red]);
+		if(abs(ball_X_r[near_red])<0.13 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.4){
+ 	 		slide_dist = int(400*(red_distance[near_red]));
+ 	 		printf("avoid\n");
+
+			if(ball_X_r[near_red]>0){
+		//slide right
+		for(int i=0;i<slide_dist;i++)
+			data[0]=0;
+			data[1]=100;
+			data[2]=0;
+			data[3]=-100;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+			}
+		else{
+		//slide left
+		for(int i=0;i<slide_dist;i++){
+
+			data[0]=-100;
+			data[1]=0;
+			data[2]=100;
+			data[3]=0;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+
+		}
+
+	}
+
+	//printf("data0:%f\n",data[0]);
+	//printf("data1:%f\n",data[1]);
+	//printf("data2:%f\n",data[2]);
+	//printf("data3:%f\n",data[3]);
+
+}
+}
