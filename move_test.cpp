@@ -206,13 +206,15 @@ void camera_Callback(const core_msgs::tf_result::ConstPtr& position)
 }*/
 void find_ball()
 {
-data[0]=-20;data[1]=-20;data[2]=-20;data[3]=-20;
+data[0]=-110;data[1]=-110;data[2]=-110;data[3]=-110;
+write(c_socket, data, sizeof(data));
+ros::Duration(0.025).sleep();
 }
 void initial_move()
 {
-	for(int i=0;i<350;i++)
+	for(int i=0;i<300 ;i++)
 	{
-		data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+		data[0]=-110;data[1]=110;data[2]=110;data[3]=-110;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 	}
@@ -220,31 +222,32 @@ void initial_move()
 void avoid_wall()
 {
 	if (shortest_angle>0 && shortest_angle<=90){
-		data[0]=0;
-		data[1]=-40;
-		data[2]=0;
-		data[3]=40;
-	}
-	else if(shortest_angle>90 && shortest_angle<=180){
 		data[0]=40;
 		data[1]=0;
 		data[2]=-40;
 		data[3]=0;
 	}
+	else if(shortest_angle>90 && shortest_angle<=180){
+		data[0]=0;
+		data[1]=-40;
+		data[2]=0;
+		data[3]=40;
+	}
 	else if(shortest_angle<=0 && shortest_angle>-90){
 		data[0]=-40;
 		data[1]=0;
 		data[2]=40;
-		data[3]=-0;
+		data[3]=0;
 	}
 	else{
-		data[0]=-0;
+		data[0]=0;
 		data[1]=40;
 		data[2]=0;
 		data[3]=-40;
 
 	}
-
+	write(c_socket, data, sizeof(data));
+	ros::Duration(0.025).sleep();
 }
 void avoid_red()
 {
@@ -256,17 +259,24 @@ void avoid_red()
 		else {near_red=i+1;}}
 		printf("red_distance %f\n",red_distance[near_red]);
 		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.4){
- 	 		slide_dist = int(1400*(0.1-abs(ball_X_r[near_red])));
+ 	 		slide_dist = int(400*(red_distance[near_red]));
  	 		printf("avoid\n");
-			printf("red_distance %f\n ",red_distance[near_red]);
+
 			if(ball_X_r[near_red]>0){
 		//slide right
-
+		for(int i=0;i<1000*(0.1-abs(ball_X_r[near_red]));i++){
+			data[0]=-30;
+			data[1]=-30;
+			data[2]=-30;
+			data[3]=-30;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+		}
 				for(int i=0; i<int(slide_dist);i++)
 				{
-					data[0]=40;
+					data[0]=-40;
 					data[1]=40;
-					data[2]=-40;
+					data[2]=40;
 					data[3]=-40;
 			printf("slide_right\n");
 		//	printf("data0:%f\n",data[0]);
@@ -275,29 +285,52 @@ void avoid_red()
 		//	printf("data3:%f\n",data[3]);
 
 
-				//	write(c_socket, data, sizeof(data));
-				//	ros::Duration(0.025).sleep();
+					write(c_socket, data, sizeof(data));
+					ros::Duration(0.025).sleep();
 				}
-
+				for(int i=0;i<1500*(0.1-abs(ball_X_r[near_red]));i++){
+					data[0]=30;
+					data[1]=30;
+					data[2]=30;
+					data[3]=30;
+					write(c_socket, data, sizeof(data));
+					ros::Duration(0.025).sleep();
+				}
 			}
 		else{
 		//slide left
-			for(int i=0; i<int(slide_dist);i++)
-			{
-				data[0]=-40;
-				data[1]=-40;
-				data[2]=40;
-				data[3]=40;
-			printf("slide_left\n");
-	//		printf("data0:%f\n",data[0]);
-	//		printf("data1:%f\n",data[1]);
-	//		printf("data2:%f\n",data[2]);
-	//		printf("data3:%f\n",data[3]);
-
-
-			//	write(c_socket, data, sizeof(data));
-			//	ros::Duration(0.025).sleep();
+		for(int i=0;i<1000*(0.1-abs(ball_X_r[near_red]));i++){
+			data[0]=30;
+			data[1]=30;
+			data[2]=30;
+			data[3]=30;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
 		}
+				for(int i=0; i<int(slide_dist);i++)
+				{
+					data[0]=-40;
+					data[1]=40;
+					data[2]=40;
+					data[3]=-40;
+			printf("slide_right\n");
+		//	printf("data0:%f\n",data[0]);
+		//	printf("data1:%f\n",data[1]);
+		//	printf("data2:%f\n",data[2]);
+		//	printf("data3:%f\n",data[3]);
+
+
+					write(c_socket, data, sizeof(data));
+					ros::Duration(0.025).sleep();
+				}
+				for(int i=0;i<1500*(0.1-abs(ball_X_r[near_red]));i++){
+					data[0]=-30;
+					data[1]=-30;
+					data[2]=-30;
+					data[3]=-30;
+					write(c_socket, data, sizeof(data));
+					ros::Duration(0.025).sleep();
+				}
 	}
 
 	//printf("data0:%f\n",data[0]);
@@ -307,6 +340,68 @@ void avoid_red()
 
 }
 }
+
+// void avoid_red()
+// {
+// 	state=1;
+// 	near_red=0;
+// 	for(int i=0; i<red_number-1;i++){
+// 		if(red_distance[i]<red_distance[i+1]){near_red=i;}
+//  		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
+// 		else {near_red=i+1;}}
+// 		printf("red_distance %f\n",red_distance[near_red]);
+// 		if(abs(ball_X_r[near_red])<0.1 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.4){
+//  	 		slide_dist = int(1400*(0.11-abs(ball_X_r[near_red])));
+//  	 		printf("avoid\n");
+// 			printf("red_distance %f\n ",red_distance[near_red]);
+// 			if(ball_X_r[near_red]>0){
+// 		//slide right
+//
+// 				for(int i=0; i<int(slide_dist);i++)
+// 				{
+// 					data[0]=60;
+// 					data[1]=60;
+// 					data[2]=-60;
+// 					data[3]=-60;
+// 			printf("slide_right\n");
+// 		//	printf("data0:%f\n",data[0]);
+// 		//	printf("data1:%f\n",data[1]);
+// 		//	printf("data2:%f\n",data[2]);
+// 		//	printf("data3:%f\n",data[3]);
+//
+//
+// 				//	write(c_socket, data, sizeof(data));
+// 				//	ros::Duration(0.025).sleep();
+// 				}
+//
+// 			}
+// 		else{
+// 		//slide left
+// 			for(int i=0; i<int(slide_dist);i++)
+// 			{
+// 				data[0]=-60;
+// 				data[1]=-60;
+// 				data[2]=60;
+// 				data[3]=60;
+// 			printf("slide_left\n");
+// 	//		printf("data0:%f\n",data[0]);
+// 	//		printf("data1:%f\n",data[1]);
+// 	//		printf("data2:%f\n",data[2]);
+// 	//		printf("data3:%f\n",data[3]);
+//
+//
+// 			//	write(c_socket, data, sizeof(data));
+// 			//	ros::Duration(0.025).sleep();
+// 		}
+// 	}
+//
+// 	//printf("data0:%f\n",data[0]);
+// 	//printf("data1:%f\n",data[1]);
+// 	//printf("data2:%f\n",data[2]);
+// 	//printf("data3:%f\n",data[3]);
+//
+// }
+// }
 void lidar_move(){
 		if(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()||lidar_distance[0]==std::numeric_limits<float>::infinity()||lidar_distance[179]==std::numeric_limits<float>::infinity()){
 		//		write(c_socket, data, sizeof(data));
@@ -320,7 +415,7 @@ void lidar_move(){
 					printf("angle %f\n",angle);
 				}
 				else{
-					data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+					data[0]=-110;data[1]=110;data[2]=110;data[3]=-110;
 					printf("go_straight\n");
 				}
 			}
@@ -331,7 +426,7 @@ void lidar_move(){
 					printf("angle %f\n",angle);
 				}
 				else{
-					data[0]=-40;data[1]=40;data[2]=40;data[3]=-40;
+					data[0]=-110;data[1]=110;data[2]=110;data[3]=-110;
 					printf("go_straight\n");
 
 				}
@@ -370,7 +465,23 @@ int main(int argc, char **argv)
 //		int k =0;
 	//	while(k<500){
 	printf("initial move\n");
+/*
+	for(int i=0;i<70;i++)
+		{
+			data[0]=80;data[1]=80;data[2]=80;data[3]=80;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+		}
+
+
 	initial_move();
+	for(int i=0;i<70;i++)
+		{
+			data[0]=-80;data[1]=-80;data[2]=-80;data[3]=-80;
+			write(c_socket, data, sizeof(data));
+			ros::Duration(0.025).sleep();
+		}
+	initial_move();*/
 			while (ball_get<3){
 
 				if(shortest_new<0.26){
@@ -410,11 +521,15 @@ int main(int argc, char **argv)
 								printf("turn left\n");
 								printf("ball_X %f\n",ball_X[near_ball]);
 		//			printf(" ball_x%f\n",ball_X[near_ball]);
+								write(c_socket, data, sizeof(data));
+								ros::Duration(0.025).sleep();
 								}
 							else{data[0]=-5;data[1]=-5;data[2]=-5;data[3]=-5;
 								printf("turn right\n");
 								printf("ball_X %f\n",ball_X[near_ball]);
 			//			printf(" ball_x%f\n",ball_X[near_ball]);
+								write(c_socket, data, sizeof(data));
+								ros::Duration(0.025).sleep();
 								}
 
 							}
@@ -423,13 +538,14 @@ int main(int argc, char **argv)
 						if(ball_distance[near_ball]>0.3)
 							{
 
-								data[0]=-40;data[1]=40;data	[2]=40;data[3]=-40;
+								data[0]=-110;data[1]=110;data[2]=110;data[3]=-110;
 							printf("go straight\n");
 							printf("ball_X %f\n",ball_X[near_ball]);
-
+							write(c_socket, data, sizeof(data));
+							ros::Duration(0.025).sleep();
 							}
 						else{
-								 for (int i=0;i<180;i++)
+								 for (int i=0;i<150;i++)
 								 {
 									 data[0]=-30;data[1]=30;data[2]=30;data[3]=-30;
 									 write(c_socket, data, sizeof(data));
@@ -439,7 +555,7 @@ int main(int argc, char **argv)
 								 }
 
 								 ros::Duration(0.025).sleep();
-								 for (int i=0;i<50;i++)
+								 for (int i=0;i<45;i++)
 								 {
 									 data[0]=-20;data[1]=20;data[2]=20;data[3]=-20;data[4]=45+90*(ball_get+1);
 									 write(c_socket, data, sizeof(data));
@@ -464,13 +580,11 @@ int main(int argc, char **argv)
 //		printf("data3:%f\n",data[3]);
 	//printf("??\n");
 //}
-	write(c_socket, data, sizeof(data));
-	ros::Duration(0.025).sleep();
 	ros::spinOnce();
 }
 //data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;'
 	printf("here?2\n");
-while(green_dist>0.82||green_number<2){
+while(green_dist>0.78||green_number<2){
 	if(shortest_new<0.26){
 		avoid_wall();
 		printf("avoid wall\n");
@@ -479,7 +593,7 @@ while(green_dist>0.82||green_number<2){
 	else{
 	printf("green_dist %f\n",green_dist);
 	printf("green_num %d\n",green_number);
-if((abs(ref1-ref2)>0.2 ||(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()))&& cond==0){
+if((abs(ref1-ref2)>0.3 ||(ref1==std::numeric_limits<float>::infinity()||ref2==std::numeric_limits<float>::infinity()))&& cond==0){
 		printf("ref %f\n",abs(ref1-ref2));
 		printf("ref1 %f\n",ref1);
 		printf("ref2 %f\n",ref2);
@@ -495,7 +609,7 @@ else{
 	cond=1;
 	printf("shortest %f\n",shortest);
 	printf("shortang %f\n",shortang);
-	if(shortest<1.45){
+	if(shortest<1.47){
 		if(shortang>-90 && shortang<90){
 			data[0]=30;
 			data[1]=30;
@@ -511,39 +625,40 @@ else{
 		}
 	}
 	else{
-		data[0]=-40;
-		data[1]=40;
-		data[2]=40;
-		data[3]=-40;
+		data[0]=-110;
+		data[1]=110;
+		data[2]=110;
+		data[3]=-110;
 	}
 }
+write(c_socket, data, sizeof(data));
+ros::Duration(0.025).sleep();
 }
 // printf("data1 %f",data[0]);
 // printf(" data2 %f",data[1]);
 // printf(" data3 %f",data[2]);
 // printf(" data4 %f",data[3]);
-write(c_socket, data, sizeof(data));
-ros::Duration(0.025).sleep();
+
 ros::spinOnce();
 
 }
 	printf("green_num %d\n",green_number);
 
 	for(int i=0;i<80;i++){
-		data[0]=-30;
-		data[1]=30;
-		data[2]=30;
-		data[3]=-30;
+		data[0]=-50;
+		data[1]=50;
+		data[2]=50;
+		data[3]=-50;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 
 	}
 	printf("here?\n");
 	for(int i=0;i<100;i++){
-		data[0]=30;
-		data[1]=30;
-		data[2]=30;
-		data[3]=30;
+		data[0]=60;
+		data[1]=60;
+		data[2]=60;
+		data[3]=60;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 	}
@@ -570,10 +685,10 @@ ros::spinOnce();
 			//printf("hit the red ball\n");
 		}
 	for(int i=0;i<100;i++){
-		data[0]=-30;
-		data[1]=-30;
-		data[2]=-30;
-		data[3]=-30;
+		data[0]=-60;
+		data[1]=-60;
+		data[2]=-60;
+		data[3]=-60;
 		write(c_socket, data, sizeof(data));
 		ros::Duration(0.025).sleep();
 		ros::spinOnce();
@@ -602,11 +717,11 @@ ros::spinOnce();
 
 	}
 		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
-	while(abs(ball_Y_g[0])>0.7){
+	while(abs(ball_Y_g[0])>0.6){
 		home_x=(ball_X_g[0]+ball_X_g[1])/2;
 		printf("ball_y_g %f\n",abs(ball_Y_g[0]));
 		printf("home_x %f\n",home_x);
-			if(abs(home_x)>0.03){
+			if(abs(home_x)>0.016){
 				if(home_x>0){
 					data[0]=-30;
 					data[1]=-30;
@@ -623,10 +738,10 @@ ros::spinOnce();
 			}
 
 			else{
-				data[0]=-40;
-				data[1]=40;
-				data[2]=40;
-				data[3]=-40;
+				data[0]=-110;
+				data[1]=110;
+				data[2]=110;
+				data[3]=-110;
 			}
 
 			write(c_socket, data, sizeof(data));
@@ -634,10 +749,10 @@ ros::spinOnce();
 			ros::spinOnce();
 		}
 				while(shortest>0.42){
-					data[0]=-30;
-					data[1]=30;
-					data[2]=30;
-					data[3]=-30;
+					data[0]=-110;
+					data[1]=110;
+					data[2]=110;
+					data[3]=-110;
 					write(c_socket, data, sizeof(data));
 					ros::Duration(0.025).sleep();
 					ros::spinOnce();
