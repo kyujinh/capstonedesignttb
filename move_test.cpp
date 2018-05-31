@@ -212,7 +212,7 @@ ros::Duration(0.025).sleep();
 }
 void initial_move()
 {
-	for(int i=0;i<300 ;i++)
+	for(int i=0;i<300 ;i++)  //change to 300
 	{
 		data[0]=-110;data[1]=110;data[2]=110;data[3]=-110;
 		write(c_socket, data, sizeof(data));
@@ -258,8 +258,8 @@ void avoid_red()
  		else if(red_distance[i]==red_distance[i+1]){near_red=i;}
 		else {near_red=i+1;}}
 		printf("red_distance %f\n",red_distance[near_red]);
-		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.4){
- 	 		slide_dist = int(400*(red_distance[near_red]));
+		if(abs(ball_X_r[near_red])<0.095 && red_distance[near_red]<ball_distance[near_ball]&&red_distance[near_red]<0.3){
+ 	 		slide_dist = int(1.2*400*(red_distance[near_red]));
  	 		printf("avoid\n");
 
 			if(ball_X_r[near_red]>0){
@@ -465,8 +465,8 @@ int main(int argc, char **argv)
 //		int k =0;
 	//	while(k<500){
 	printf("initial move\n");
-/*
-	for(int i=0;i<70;i++)
+
+	for(int i=0;i<90;i++)
 		{
 			data[0]=80;data[1]=80;data[2]=80;data[3]=80;
 			write(c_socket, data, sizeof(data));
@@ -475,19 +475,19 @@ int main(int argc, char **argv)
 
 
 	initial_move();
-	for(int i=0;i<70;i++)
+	for(int i=0;i<90;i++)
 		{
 			data[0]=-80;data[1]=-80;data[2]=-80;data[3]=-80;
 			write(c_socket, data, sizeof(data));
 			ros::Duration(0.025).sleep();
 		}
-	initial_move();*/
+	initial_move();
 			while (ball_get<3){
 
 				if(shortest_new<0.26){
 					avoid_wall();
 					printf("avoid wall\n");
-					printf("shortest %f\n",shortest);
+					printf("shortest %f\n",shortest_new);
 				}
 				else{
 					if(ball_number==0 )
@@ -584,11 +584,11 @@ int main(int argc, char **argv)
 }
 //data[0]=0;data[1]=0;data[2]=-0;data[3]=-0;'
 	printf("here?2\n");
-while(green_dist>0.78||green_number<2){
+while(green_dist>0.7||green_number<2){  //chane to 0.78
 	if(shortest_new<0.26){
 		avoid_wall();
 		printf("avoid wall\n");
-		printf("shortest %f\n",shortest);
+		printf("shortest %f\n",shortest_new);
 	}
 	else{
 	printf("green_dist %f\n",green_dist);
@@ -609,7 +609,7 @@ else{
 	cond=1;
 	printf("shortest %f\n",shortest);
 	printf("shortang %f\n",shortang);
-	if(shortest<1.47){
+	if(shortest<1.47){   //change to 1.47
 		if(shortang>-90 && shortang<90){
 			data[0]=30;
 			data[1]=30;
@@ -644,7 +644,7 @@ ros::spinOnce();
 }
 	printf("green_num %d\n",green_number);
 
-	for(int i=0;i<80;i++){
+	for(int i=0;i<100;i++){
 		data[0]=-50;
 		data[1]=50;
 		data[2]=50;
@@ -788,7 +788,7 @@ ros::spinOnce();
 						data[1]=0;
 						data[2]=0;
 						data[3]=0;
-						data[4]=0;
+						data[4]=1;
 						data[5]=50;
 						write(c_socket, data, sizeof(data));
 						ros::Duration(0.025).sleep();
