@@ -24,9 +24,9 @@ ros::Publisher pub_markers_g;
 
 int low_h_b=90, low_s_b=200, low_v_b=100;//
 int high_h_b=110, high_s_b=255, high_v_b=255;//
-int low_h2_r=170, high_h2_r=180;//
-int low_h_r=0, low_s_r=200, low_v_r=85;//
-int high_h_r=0, high_s_r=255, high_v_r=255;//
+int low_h2_r=172, high_h2_r=180;//
+int low_h_r=0, low_s_r=110, low_v_r=90;//
+int high_h_r=5, high_s_r=255, high_v_r=170;//
 int lowThreshold_r = 100;
 int ratio_r = 3;
 int kernel_size_r = 3;
@@ -34,8 +34,8 @@ int lowThreshold_b = 100;
 int ratio_b = 3;
 int kernel_size_b = 3;
 
-int low_h_g=44, low_s_g=100, low_v_g=61;//
-int high_h_g=77, high_s_g=220, high_v_g=180;//
+int low_h_g=45, low_s_g=70, low_v_g=70;//
+int high_h_g=90, high_s_g=235, high_v_g=255;//
 int lowThreshold_g = 100;
 int ratio_g = 3;
 int kernel_size_g = 3;
@@ -273,7 +273,11 @@ void ball_detect()
 //	std::cout<<"temp block===="<<std::endl;
       for( size_t i = 0; i< contours_r.size(); i++ ){
           if (radius_r[i] > iMin_tracking_ball_size && check_r[i] !=1){
+            if(center_r[i].y < 17){
+              center_r[i].y = 17;
+              radius_r[i] = 111;
 
+            }
             Scalar color = Scalar( 0, 0, 255);
                 drawContours( hsv_frame_red_canny, contours_r_poly, (int)i, color, 1, 8, vector<Vec4i>(), 0, Point() );
                 vector<float> ball_position_r;
